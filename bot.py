@@ -48,6 +48,7 @@ live_status = 'first'
 @tasks.loop(seconds=15)
 async def mildom_archive():
     global mildom_count
+    print('check mildom')
     mildom_count = mildom_count + 1
     if mildom_count == 4:
         get_archive = True
