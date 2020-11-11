@@ -42,6 +42,7 @@ auto_notify_message = {}
 latest_live_link = ''
 reaction_id = 731559319354605589
 mildom_count = 0
+live_status = 'first'
 
 
 @tasks.loop(seconds=15)
@@ -59,7 +60,7 @@ async def mildom_archive():
         name = val[3]
         ch = client.get_channel(int(val[1]))
         msg_id = auto_notify_message[int(user_id)]
-        msg = ch.fetch_message(msg_id)
+        msg = await ch.fetch_message(msg_id)
         await mildom_check(user_id=user_id,
                            channel=ch,
                            mention_role=mention_role,
@@ -70,7 +71,7 @@ async def mildom_archive():
 
 @tasks.loop(seconds=60)
 async def openrec_exam_every_30sec():
-    global live_status, msg_exam_id, latest_live_link
+    global live_status, latest_live_link
     # htmlをダウンロードするURL
     dt_now = datetime.now(jst)
     start_year = dt_now.year - 1
@@ -92,9 +93,8 @@ async def openrec_exam_every_30sec():
         latest_live_link = 'https://www.openrec.tv/live/' + latest_live[-24:-13]
         live_list.clear()
         if live_status == 'false':
-            msg = await client.get_channel(484104150959783936).send(
+            await client.get_channel(484104150959783936).send(
                 "<@&718451051102994473> EXAMさんが配信を開始しました。\n" + latest_live_link)
-            msg_exam_id = msg.id
             live_status = 'true'
         elif live_status == 'first':
             live_status = 'true'
