@@ -288,9 +288,9 @@ async def mildom_check(user_id, channel, mention_role, mildom_name, msg):
             title = mildom_dict['body']['user_info']['anchor_intro']
             thumbnail_url = mildom_dict['body']['user_info']['pic']
             embed = discord.Embed(title=title, url='https://mildom.com/'+user_id, color=discord.Colour.blue())
-            embed.set_image(url=thumbnail_url)
+            embed.set_thumbnail(url=thumbnail_url)
             embed.set_author(name=mildom_name, icon_url=avatar_url)
-            notify_message = await channel.send(mention_role + mildom_name + 'さんが配信を開始しました。', embed=embed)
+            notify_message = await channel.send(mention_role + ' ' + mildom_name + 'さんが配信を開始しました。', embed=embed)
             auto_notify_message[int(user_id)] = notify_message.id
         mildom_status[user_id] = 'online'
 
