@@ -1,6 +1,4 @@
 from datetime import datetime, timedelta, timezone
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
 import discord
 from discord.ext import tasks
 import re
@@ -14,9 +12,6 @@ TOKEN = settings.TOKEN
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
 jst = timezone(timedelta(hours=9), 'JST')
-gauth = GoogleAuth()
-gauth.LocalWebserverAuth()
-drive = GoogleDrive(gauth)
 
 mildom_status = {}
 mention_dict = {484103635895058432: '<@&718449500729114664>', 484103660742115363: '<@&718449761409302580>',
@@ -43,6 +38,7 @@ latest_live_link = ''
 reaction_id = 731559319354605589
 mildom_count = 0
 live_status = 'first'
+log_path = 'home/alpaca-data/five-don-bot-log/log.txt'
 
 
 @tasks.loop(seconds=15)
@@ -119,8 +115,6 @@ async def openrec_exam_every_30sec():
 
 @client.event
 async def on_ready():
-    f = drive.CreateFile({'id': '1nsBAxrZTnI_o4UskEjZqlDgAZ75aHOUq'})
-    f.GetContentFile('log.txt')
     for value_list in mildom_list:
         user_id = value_list[0]
         channel_id = value_list[1]
@@ -139,10 +133,10 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    if message.author == client.user:
+        return
     # メンション
     if message.channel.id in mention_dict:
-        if message.author == client.user:
-            return
         await notify_mention(message=message)
     # Bot除外
     if message.author.bot:
@@ -174,8 +168,8 @@ async def on_raw_reaction_add(payload):
 
         if role is not None:
             member = discord.utils.find(lambda m: m.id == payload.user_id, guild.members)
-            thisbot = discord.utils.find(lambda m: m.id == 718034684533145605, guild.members)
-            if member == thisbot:
+            this_bot = client.user
+            if member == this_bot:
                 return
             if member is not None:
                 await member.add_roles(role)
@@ -227,7 +221,7 @@ async def on_raw_message_edit(payload):
     async for bot_message in ch.history():
         if str(edited_message_id) in bot_message.content and bot_message.author.id == 718034684533145605:
             await bot_message.edit(
-                content=mention_dict.get(edited_msg.channel.id) + '\n' + text_mod + '\n`[' + str(edited_message_id) + ']`')
+                content=mention_dict.get(edited_msg.channel.id)+'\n'+text_mod+'\n`['+str(edited_message_id) + ']`')
         break
     print('message edited')
 
@@ -262,7 +256,6 @@ async def get_mildom_archive(user_id, msg):
         archive[user_id] = archive_url
         return
     if old_archive != archive_url:
-        unix_time = mildom_dict['body'][0]['publish_time']
         if len(msg.embeds) == 0:
             return
         embed = msg.embeds[0]
@@ -331,21 +324,12 @@ async def dm(message):
         await message.channel.send(embed=embed)
     if message.content == 'log' or message.content == 'ログ':
         if message.author.id == 295208852712849409 or message.author.id == 539910964724891719:
-            filepath = 'log.txt'
-            title = 'log.txt'
-            file = drive.CreateFile(
-                {'id': '1nsBAxrZTnI_o4UskEjZqlDgAZ75aHOUq', 'title': title, 'mimeType': 'text/plain'})
-            file.SetContentFile(filepath)
-            file.Upload()
-            print('upload-complete')
-            await message.channel.send(
-                'ログをアップロードしました。'
-                '\nリンク：https://drive.google.com/file/d/1nsBAxrZTnI_o4UskEjZqlDgAZ75aHOUq/view?usp=sharing')
+            await message.channel.send(file=log_path)
 
 
 async def notify_mention(message):
     dt_now = datetime.now(jst)
-    with open('log.txt', 'a') as f:
+    with open(log_path, 'a') as f:
         content = '時刻：' + str(
             dt_now) + ' 送信者：' + message.author.name + ' チャンネル：' + message.channel.name + ' メッセージ：' + message.content
         print(content, file=f)
