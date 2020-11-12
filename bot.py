@@ -73,13 +73,11 @@ async def mildom_archive():
 @tasks.loop(seconds=60)
 async def openrec_exam_every_30sec():
     global live_status, latest_live_link
-    # htmlをダウンロードするURL
     dt_now = datetime.now(jst)
     start_year = dt_now.year - 1
     today_year = dt_now.year
     today_month = dt_now.month
     today_day = dt_now.day
-    # openrecダウンロード
     download_url = "https://www.openrec.tv/viewapp/api/v3/get_movie_list?start_date=" + str(
         start_year) + "%2F01%2F01&end_date=" + str(today_year) + "%2F" + str(today_month) + "%2F" + str(
         today_day) + "&upload_type=0&movie_sort_type=UD&movie_sort_direction=1&game_id=&tag=&recxuser_id=19580443" \
@@ -143,7 +141,9 @@ async def on_ready():
 async def on_message(message):
     # メンション
     if message.channel.id in mention_dict:
-        await mention(message=message)
+        if message.author == client.user:
+            return
+        await notify_mention(message=message)
     # Bot除外
     if message.author.bot:
         return
@@ -219,18 +219,15 @@ async def on_raw_reaction_remove(payload):
 @client.event
 async def on_raw_message_edit(payload):
     ch = client.get_channel(payload.channel_id)
-    message_id = payload.message_id
-    edited_msg = await ch.fetch_message(message_id)
+    edited_message_id = payload.message_id
+    edited_msg = await ch.fetch_message(edited_message_id)
     text_mod = url_replace(text=edited_msg.content)
     if edited_msg.author.id == 718034684533145605:
         return
-    async for fetch_message in ch.history():
-        if str(message_id) not in fetch_message.content:
-            continue
-        if fetch_message.author.id != 718034684533145605:
-            continue
-        await fetch_message.edit(
-            content=mention_dict.get(edited_msg.channel.id) + '\n' + text_mod + '\n`[' + str(message_id) + ']`')
+    async for bot_message in ch.history():
+        if str(edited_message_id) in bot_message.content and bot_message.author.id == 718034684533145605:
+            await bot_message.edit(
+                content=mention_dict.get(edited_msg.channel.id) + '\n' + text_mod + '\n`[' + str(edited_message_id) + ']`')
         break
     print('message edited')
 
@@ -343,7 +340,7 @@ async def dm(message):
                 '\nリンク：https://drive.google.com/file/d/1nsBAxrZTnI_o4UskEjZqlDgAZ75aHOUq/view?usp=sharing')
 
 
-async def mention(message):
+async def notify_mention(message):
     dt_now = datetime.now(jst)
     with open('log.txt', 'a') as f:
         content = '時刻：' + str(
