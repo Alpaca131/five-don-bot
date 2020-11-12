@@ -257,14 +257,17 @@ async def get_mildom_archive(user_id, msg):
     mildom_dict = json.loads(r)
     v_id = mildom_dict['body'][0]['v_id']
     archive_url = 'https://www.mildom.com/playback/' + user_id + '?v_id=' + v_id
-    if archive.get(user_id) != archive_url:
+    old_archive = archive.get(user_id)
+    if old_archive is None:
+        archive[user_id] = archive_url
+        return
+    if old_archive != archive_url:
         unix_time = mildom_dict['body'][0]['publish_time']
         if len(msg.embeds) == 0:
             return
         embed = msg.embeds[0]
         embed.title = '［アーカイブ］'+mildom_dict['body'][0]['title']
         embed.url = archive_url
-        embed.timestamp = datetime.timestamp(unix_time)
         await msg.edit(embed=embed)
     archive[user_id] = archive_url
     return
