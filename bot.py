@@ -328,14 +328,14 @@ async def dm(message):
 
 
 async def notify_mention(message):
+    text_mod = url_replace(text=message.content)
+    await message.channel.send(
+        mention_dict.get(message.channel.id) + '\n' + text_mod + '\n`[' + str(message.id) + ']`')
     dt_now = datetime.now(jst)
     with open(log_path, 'a') as f:
         content = '時刻：' + str(
             dt_now) + ' 送信者：' + message.author.name + ' チャンネル：' + message.channel.name + ' メッセージ：' + message.content
         print(content, file=f)
-    text_mod = url_replace(text=message.content)
-    await message.channel.send(
-        mention_dict.get(message.channel.id) + '\n' + text_mod + '\n`[' + str(message.id) + ']`')
 
 
 def url_replace(text):
