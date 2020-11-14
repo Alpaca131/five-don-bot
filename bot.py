@@ -6,11 +6,17 @@ from dispander import dispand
 import async_timeout
 import aiohttp
 import json
+import sentry_sdk
 import settings
 
 TOKEN = settings.TOKEN
+DSN = settings.SENTRY_DSN
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
+sentry_sdk.init(
+    DSN,
+    traces_sample_rate=1.0
+)
 jst = timezone(timedelta(hours=9), 'JST')
 
 mildom_status = {}

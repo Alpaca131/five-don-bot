@@ -1,0 +1,5 @@
+discord.py==1.5.1
+dispander
+# aiohttpはdiscord.pyが対応していないバージョンにアップグレードしないよう、敢えて記載なし
+sentry-sdk
+dotenv
