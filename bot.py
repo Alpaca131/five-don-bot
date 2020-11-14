@@ -6,6 +6,7 @@ from dispander import dispand
 import async_timeout
 import aiohttp
 import json
+import logging
 import sentry_sdk
 import settings
 
@@ -64,12 +65,12 @@ async def mildom_archive():
         ch = client.get_channel(int(val[1]))
         msg_id = auto_notify_message[int(user_id)]
         msg = await ch.fetch_message(msg_id)
-        await mildom_check(user_id=user_id,
-                           channel=ch,
-                           mention_role=mention_role,
-                           mildom_name=name, msg=msg)
+        await mildom_check_live(user_id=user_id,
+                                channel=ch,
+                                mention_role=mention_role,
+                                mildom_name=name, msg=msg)
         if get_archive:
-            await get_mildom_archive(user_id=user_id, msg=msg)
+            await mildom_check_archive(user_id=user_id, msg=msg)
 
 
 @tasks.loop(seconds=60)
@@ -227,7 +228,8 @@ async def on_raw_message_edit(payload):
     async for bot_message in ch.history():
         if str(edited_message_id) in bot_message.content and bot_message.author.id == 718034684533145605:
             await bot_message.edit(
-                content=mention_dict.get(edited_msg.channel.id)+'\n'+text_mod+'\n`['+str(edited_message_id) + ']`')
+                content=mention_dict.get(edited_msg.channel.id) + '\n' + text_mod + '\n`[' + str(
+                    edited_message_id) + ']`')
         break
     print('message edited')
 
@@ -246,17 +248,16 @@ async def on_raw_message_delete(payload):
     print('message deleted')
 
 
-async def get_mildom_archive(user_id, msg):
+async def mildom_check_archive(user_id, msg):
     """
-    アーカイブ取得関数
+    アーカイブチェック
     """
     if '［アーカイブ］' in msg.content:
         return
-    url = "https://cloudac.mildom.com/nonolive/videocontent/profile/playbackList?user_id=" + user_id
-    r = await request(url=url)
-    mildom_dict = json.loads(r)
-    v_id = mildom_dict['body'][0]['v_id']
-    archive_url = 'https://www.mildom.com/playback/' + user_id + '?v_id=' + v_id
+    v_id, title = await mildom_get_playback(user_id)
+    if v_id is None:
+        return
+    archive_url = 'https://www.mildom.com/playback/' + user_id + '?v_id=' + str(v_id)
     old_archive = archive.get(user_id)
     if old_archive is None:
         archive[user_id] = archive_url
@@ -265,31 +266,32 @@ async def get_mildom_archive(user_id, msg):
         if len(msg.embeds) == 0:
             return
         embed = msg.embeds[0]
-        embed.title = '［アーカイブ］'+mildom_dict['body'][0]['title']
+        embed.title = '［アーカイブ］' + title
         embed.url = archive_url
         await msg.edit(embed=embed)
     archive[user_id] = archive_url
     return
 
 
-async def mildom_check(user_id, channel, mention_role, mildom_name, msg):
+async def mildom_check_live(user_id, channel, mention_role, mildom_name, msg):
     """
-    配信状況チェック関数化
+    配信状況チェック
     """
-    url = "https://cloudac.mildom.com/nonolive/gappserv/user/profileV2?user_id=" + user_id + "&__platform=web"
-    r = await request(url=url)
-    mildom_dict = json.loads(r)
-    anchor_live = mildom_dict['body']['user_info']['anchor_live']
+    r = await mildom_get_user(user_id)
+    if r is None:
+        return
+    anchor_live = r['anchor_live']
     # 配信中の場合
     if anchor_live == 11:
         if mildom_status.get(user_id) == 'offline':
-            avatar_url = mildom_dict['body']['user_info']['avatar']
-            title = mildom_dict['body']['user_info']['anchor_intro']
-            thumbnail_url = mildom_dict['body']['user_info']['pic']
-            embed = discord.Embed(title=title, url='https://mildom.com/'+user_id, color=discord.Colour.blue())
-            embed.set_thumbnail(url=thumbnail_url)
-            embed.set_author(name=mildom_name, icon_url=avatar_url)
-            notify_message = await channel.send(mention_role + ' ' + mildom_name + 'さんが配信を開始しました。', embed=embed)
+            embed = discord.Embed(title=r['live_title'],
+                                  url='https://mildom.com/' + user_id,
+                                  color=discord.Colour.blue())
+            embed.set_thumbnail(url=r['thumbnail_url'])
+            embed.set_author(name=mildom_name,
+                             icon_url=r['avatar_url'])
+            notify_message = await channel.send(mention_role + ' ' + mildom_name + 'さんが配信を開始しました。',
+                                                embed=embed)
             auto_notify_message[int(user_id)] = notify_message.id
         mildom_status[user_id] = 'online'
 
@@ -368,6 +370,42 @@ async def request(url):
     async with aiohttp.ClientSession() as session:
         body = await fetch(session, url)
         return body
+
+
+async def mildom_get_user(user_id):
+    # noinspection PyBroadException
+    try:
+        url = "https://cloudac.mildom.com/nonolive/gappserv/user/profileV2?user_id=" + str(user_id) + "&__platform=web"
+        r = await request(url)
+        local_dict = json.loads(r)
+        anchor_live = local_dict['body']['user_info']['anchor_live']
+        avatar_url = local_dict['body']['user_info']['avatar']
+        live_title = local_dict['body']['user_info']['anchor_intro']
+        thumbnail_url = local_dict['body']['user_info']['pic']
+        data_dict = {'anchor_live': anchor_live,
+                     'live_title': live_title,
+                     'avatar_url': avatar_url,
+                     'thumbnail_url': thumbnail_url}
+        return data_dict
+    except Exception as e:
+        await client.get_user(539910964724891719).send(str(e))
+        logging.error(msg='mildom user API error: ' + str(e))
+        return None
+
+
+async def mildom_get_playback(user_id):
+    # noinspection PyBroadException
+    try:
+        url = "https://cloudac.mildom.com/nonolive/videocontent/profile/playbackList?user_id=" + str(user_id)
+        r = await request(url)
+        local_dict = json.loads(r)
+        v_id = local_dict['body'][0]['v_id']
+        title = local_dict['body'][0]['title']
+        return v_id, title
+    except Exception as e:
+        await client.get_user(539910964724891719).send(str(e))
+        logging.error(msg='mildom playback API error: ' + str(e))
+        return None, None
 
 
 client.run(TOKEN)
