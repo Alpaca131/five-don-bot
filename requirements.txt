@@ -1,5 +1,9 @@
 discord.py==1.5.1
-dispander
+dispander~=0.4.0
 # aiohttpはdiscord.pyが対応していないバージョンにアップグレードしないよう、敢えて記載なし
 sentry-sdk
 dotenv
+aiohttp~=3.6.3
+aiolimiter~=1.0.0b1
+python-dotenv~=0.15.0
+zlib~=1.2.11

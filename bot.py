@@ -9,6 +9,7 @@ import json
 import logging
 import sentry_sdk
 import settings
+from aiolimiter import AsyncLimiter
 
 TOKEN = settings.TOKEN
 DSN = settings.SENTRY_DSN
@@ -19,7 +20,9 @@ sentry_sdk.init(
     traces_sample_rate=1.0
 )
 jst = timezone(timedelta(hours=9), 'JST')
-
+server_join_ratelimit = AsyncLimiter(time_period=10, max_rate=10)
+invite_link_ratelimit = AsyncLimiter(time_period=3600, max_rate=2)
+url_ratelimit = AsyncLimiter(time_period=60, max_rate=1)
 mildom_status = {}
 mention_dict = {484103635895058432: '<@&718449500729114664>', 484103660742115363: '<@&718449761409302580>',
                 484104086472491020: '<@&718450891744870530>', 484104317410738177: '<@&718450954613162015>',
@@ -41,6 +44,7 @@ emoji_list = ['<:01kun:503956099343581185>', '<:02mav:503956138404872202>', '<:0
               '<:03ryu:503956243417792543>']
 archive = {}
 auto_notify_message = {}
+mute_role = None
 latest_live_link = ''
 reaction_id = 731559319354605589
 mildom_count = 0
@@ -122,6 +126,7 @@ async def openrec_exam_every_30sec():
 
 @client.event
 async def on_ready():
+    global mute_role
     for value_list in mildom_list:
         user_id = value_list[0]
         channel_id = value_list[1]
@@ -133,6 +138,8 @@ async def on_ready():
                     msg = msg_history
                     break
         auto_notify_message[int(user_id)] = msg.id
+    # 暫定的にWelcomeロールに設定
+    mute_role = discord.utils.get(client.get_guild(484102468524048395).roles, id=734047235574071304)
     mildom_archive.start()
     openrec_exam_every_30sec.start()
     print('ready')
@@ -140,6 +147,8 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    await invite_link_detection(message)
+    await url_detection(message)
     if message.author == client.user:
         return
     # メンション
@@ -248,6 +257,18 @@ async def on_raw_message_delete(payload):
     print('message deleted')
 
 
+@client.event
+async def on_member_join(member):
+    if server_join_ratelimit.has_capacity(1):
+        await server_join_ratelimit.acquire(1)
+        print(member.display_name + ' JOINED')
+    else:
+        await member.add_roles(mute_role)
+        await client.get_user(539910964724891719).send('This user might be a spammer.\nID: ' + str(member.id))
+        await client.get_user(295208852712849409).send('このユーザーはスパムかもしれません。10秒間に10人以上がサーバーに参加しました。```\n'
+                                                       'ID: ' + str(member.id) + '\n名前: ' + member.display_name + '```')
+
+
 async def mildom_check_archive(user_id, msg):
     """
     アーカイブチェック
@@ -344,6 +365,28 @@ async def notify_mention(message):
         content = '時刻：' + str(
             dt_now) + ' 送信者：' + message.author.name + ' チャンネル：' + message.channel.name + ' メッセージ：' + message.content
         print(content, file=f)
+
+
+async def invite_link_detection(message):
+    invite_link_list = re.findall(r'discord.gg/[a-zA-Z0-9]+', message.content)
+    if invite_link_list:
+        if invite_link_ratelimit.has_capacity(len(invite_link_list)):
+            await invite_link_ratelimit.acquire(len(invite_link_list))
+        else:
+            await message.channel.send('Discordの招待URLは1時間に2回までしか投稿できません。招待リンクを削除して再投稿してみて下さい。\nメッセージを削除しました。')
+            await message.delete()
+
+
+async def url_detection(message):
+    if 'http' in message.content:
+        pattern = r"https?://[\w/:%#\$&\?\(\)~\.=\+\-]+"
+        url_list = re.findall(pattern, message.content)
+        if url_list:
+            if url_ratelimit.has_capacity(len(url_list)):
+                await url_ratelimit.acquire(len(url_list))
+            else:
+                await message.channel.send('URLは1分に1回しか投稿できません。URLを削除して再投稿してみて下さい。\nメッセージを削除しました。')
+                await message.delete()
 
 
 def url_replace(text):
