@@ -49,9 +49,9 @@ latest_live_link = ''
 reaction_id = 731559319354605589
 mildom_count = 0
 regex_discord_message_url = (
-            'https://(ptb.|canary.)?discord(app)?.com/channels/'
-            '(?P<guild>[0-9]{18})/(?P<channel>[0-9]{18})/(?P<message>[0-9]{18})'
-        )
+    r'https://(ptb.|canary.)?discord(app)?.com/channels/'
+    '[0-9]{18}/[0-9]{18}/[0-9]{18}'
+)
 live_status = 'first'
 log_path = 'home/alpaca-data/five-don-bot-log/log.txt'
 
@@ -277,55 +277,63 @@ async def mildom_check_archive(user_id, msg):
     """
     アーカイブチェック
     """
-    if '［アーカイブ］' in msg.content:
-        return
-    v_id, title = await mildom_get_playback(user_id)
-    if v_id is None:
-        return
-    archive_url = 'https://www.mildom.com/playback/' + user_id + '?v_id=' + str(v_id)
-    old_archive = archive.get(user_id)
-    if old_archive is None:
+    # エラーの原因が判明するまでの応急処置
+    try:
+        if '［アーカイブ］' in msg.content:
+            return
+        v_id, title = await mildom_get_playback(user_id)
+        if v_id is None:
+            return
+        archive_url = 'https://www.mildom.com/playback/' + user_id + '?v_id=' + str(v_id)
+        old_archive = archive.get(user_id)
+        if old_archive is None:
+            archive[user_id] = archive_url
+            return
+        if old_archive != archive_url:
+            if len(msg.embeds) == 0:
+                return
+            embed = msg.embeds[0]
+            embed.title = '［アーカイブ］' + title
+            embed.url = archive_url
+            await msg.edit(embed=embed)
         archive[user_id] = archive_url
         return
-    if old_archive != archive_url:
-        if len(msg.embeds) == 0:
-            return
-        embed = msg.embeds[0]
-        embed.title = '［アーカイブ］' + title
-        embed.url = archive_url
-        await msg.edit(embed=embed)
-    archive[user_id] = archive_url
-    return
+    except Exception as e:
+        print(e)
 
 
 async def mildom_check_live(user_id, channel, mention_role, mildom_name, msg):
     """
     配信状況チェック
     """
-    r = await mildom_get_user(user_id)
-    if r is None:
-        return
-    anchor_live = r['anchor_live']
-    # 配信中の場合
-    if anchor_live == 11:
-        if mildom_status.get(user_id) == 'offline':
-            embed = discord.Embed(title=r['live_title'],
-                                  url='https://mildom.com/' + user_id,
-                                  color=discord.Colour.blue())
-            embed.set_thumbnail(url=r['thumbnail_url'])
-            embed.set_author(name=mildom_name,
-                             icon_url=r['avatar_url'])
-            notify_message = await channel.send(mention_role + ' ' + mildom_name + 'さんが配信を開始しました。',
-                                                embed=embed)
-            auto_notify_message[int(user_id)] = notify_message.id
-        mildom_status[user_id] = 'online'
+    # エラーの原因が判明するまでの応急処置
+    try:
+        r = await mildom_get_user(user_id)
+        if r is None:
+            return
+        anchor_live = r['anchor_live']
+        # 配信中の場合
+        if anchor_live == 11:
+            if mildom_status.get(user_id) == 'offline':
+                embed = discord.Embed(title=r['live_title'],
+                                      url='https://mildom.com/' + user_id,
+                                      color=discord.Colour.blue())
+                embed.set_thumbnail(url=r['thumbnail_url'])
+                embed.set_author(name=mildom_name,
+                                 icon_url=r['avatar_url'])
+                notify_message = await channel.send(mention_role + ' ' + mildom_name + 'さんが配信を開始しました。',
+                                                    embed=embed)
+                auto_notify_message[int(user_id)] = notify_message.id
+            mildom_status[user_id] = 'online'
 
-    # 配信中ではない場合
-    else:
-        if mildom_status.get(user_id) == 'online':
-            if '［終了］' not in msg.content:
-                await msg.edit(content='［終了］' + msg.content)
-        mildom_status[user_id] = 'offline'
+        # 配信中ではない場合
+        else:
+            if mildom_status.get(user_id) == 'online':
+                if '［終了］' not in msg.content:
+                    await msg.edit(content='［終了］' + msg.content)
+            mildom_status[user_id] = 'offline'
+    except Exception as e:
+        print(e)
 
 
 async def dm(message):
