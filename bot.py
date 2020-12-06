@@ -48,6 +48,10 @@ mute_role = None
 latest_live_link = ''
 reaction_id = 731559319354605589
 mildom_count = 0
+regex_discord_message_url = (
+            'https://(ptb.|canary.)?discord(app)?.com/channels/'
+            '(?P<guild>[0-9]{18})/(?P<channel>[0-9]{18})/(?P<message>[0-9]{18})'
+        )
 live_status = 'first'
 log_path = 'home/alpaca-data/five-don-bot-log/log.txt'
 
@@ -381,9 +385,11 @@ async def url_detection(message):
     if 'http' in message.content:
         pattern = r"https?://[\w/:%#\$&\?\(\)~\.=\+\-]+"
         url_list = re.findall(pattern, message.content)
-        if url_list:
-            if url_ratelimit.has_capacity(len(url_list)):
-                await url_ratelimit.acquire(len(url_list))
+        message_link_list = re.findall(regex_discord_message_url, message.content)
+        true_url_list = list(set(url_list) - set(message_link_list))
+        if true_url_list:
+            if url_ratelimit.has_capacity(len(true_url_list)):
+                await url_ratelimit.acquire(len(true_url_list))
             else:
                 await message.channel.send('URLは1分に1回しか投稿できません。URLを削除して再投稿してみて下さい。\nメッセージを削除しました。')
                 await message.delete()
