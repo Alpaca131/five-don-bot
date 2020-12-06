@@ -151,10 +151,10 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    await invite_link_detection(message)
-    await url_detection(message)
     if message.author == client.user:
         return
+    await invite_link_detection(message)
+    await url_detection(message)
     # メンション
     if message.channel.id in mention_dict:
         await notify_mention(message=message)
