@@ -22,7 +22,7 @@ sentry_sdk.init(
 jst = timezone(timedelta(hours=9), 'JST')
 server_join_ratelimit = AsyncLimiter(time_period=10, max_rate=10)
 invite_link_ratelimit = AsyncLimiter(time_period=3600, max_rate=2)
-url_ratelimit = AsyncLimiter(time_period=60, max_rate=1)
+url_ratelimit = AsyncLimiter(time_period=60, max_rate=4)
 mildom_status = {}
 mention_dict = {484103635895058432: '<@&718449500729114664>', 484103660742115363: '<@&718449761409302580>',
                 484104086472491020: '<@&718450891744870530>', 484104317410738177: '<@&718450954613162015>',
@@ -404,8 +404,8 @@ async def url_detection(message):
         url_list = list(set(all_url_list) - set(message_url_list))
         if url_list:
             deleted = False
-            if url_ratelimit.has_capacity(0.2 * len(url_list)):
-                await url_ratelimit.acquire(0.2 * len(url_list))
+            if url_ratelimit.has_capacity(len(url_list)):
+                await url_ratelimit.acquire(len(url_list))
             else:
                 await message.channel.send('URLの送りすぎです。時間をあけて再度お試し下さい。\nメッセージを削除しました。')
                 await message.delete()
