@@ -9,6 +9,7 @@ import json
 import logging
 import sentry_sdk
 import settings
+import asyncio
 from aiolimiter import AsyncLimiter
 
 TOKEN = settings.TOKEN
@@ -407,16 +408,20 @@ async def url_detection(message):
             if url_ratelimit.has_capacity(len(url_list)):
                 await url_ratelimit.acquire(len(url_list))
             else:
-                await message.channel.send('URLの送りすぎです。時間をあけて再度お試し下さい。\nメッセージを削除しました。')
+                bot_message = await message.channel.send('URLの送りすぎです。時間をあけて再度お試し下さい。\nメッセージを削除しました。')
                 await message.delete()
+                await asyncio.sleep(3)
+                await bot_message.delete()
                 deleted = True
             for url in url_list:
                 if url in sent_url_list:
                     sent_url_list[url] = sent_url_list[url] + 1
                     if sent_url_list[url] >= 3:
                         if not deleted:
-                            await message.channel.send('同じURLの送りすぎです。時間をあけて再度お試し下さい。\nメッセージを削除しました。')
+                            bot_message = await message.channel.send('同じURLの送りすぎです。時間をあけて再度お試し下さい。\nメッセージを削除しました。')
                             await message.delete()
+                            await asyncio.sleep(3)
+                            await bot_message.delete()
                             deleted = True
                 else:
                     sent_url_list[url] = 1
