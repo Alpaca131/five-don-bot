@@ -52,8 +52,14 @@ regex_discord_message_url = (
     r'https://(ptb.|canary.)?discord(app)?.com/channels/'
     '[0-9]{18}/[0-9]{18}/[0-9]{18}'
 )
+sent_url_list = {}
 live_status = 'first'
 log_path = 'home/alpaca-data/five-don-bot-log/log.txt'
+
+
+@tasks.loop(minutes=5)
+async def reset_sent_url_list():
+    sent_url_list.clear()
 
 
 @tasks.loop(seconds=15)
@@ -146,6 +152,7 @@ async def on_ready():
     mute_role = discord.utils.get(client.get_guild(484102468524048395).roles, id=734047235574071304)
     mildom_archive.start()
     openrec_exam_every_30sec.start()
+    reset_sent_url_list.start()
     print('ready')
 
 
@@ -392,15 +399,27 @@ async def invite_link_detection(message):
 async def url_detection(message):
     if 'http' in message.content:
         pattern = r"https?://[\w/:%#\$&\?\(\)~\.=\+\-]+"
-        url_list = re.findall(pattern, message.content)
-        message_link_list = re.findall(regex_discord_message_url, message.content)
-        true_url_list = list(set(url_list) - set(message_link_list))
-        if true_url_list:
-            if url_ratelimit.has_capacity(len(true_url_list)):
-                await url_ratelimit.acquire(len(true_url_list))
+        all_url_list = re.findall(pattern, message.content)
+        message_url_list = re.findall(regex_discord_message_url, message.content)
+        url_list = list(set(all_url_list) - set(message_url_list))
+        if url_list:
+            deleted = False
+            if url_ratelimit.has_capacity(0.2 * len(url_list)):
+                await url_ratelimit.acquire(0.2 * len(url_list))
             else:
-                await message.channel.send('URLは1分に1回しか投稿できません。URLを削除して再投稿してみて下さい。\nメッセージを削除しました。')
+                await message.channel.send('URLの送りすぎです。時間をあけて再度お試し下さい。\nメッセージを削除しました。')
                 await message.delete()
+                deleted = True
+            for url in url_list:
+                if url in sent_url_list:
+                    sent_url_list[url] = sent_url_list[url] + 1
+                    if sent_url_list[url] >= 3:
+                        if not deleted:
+                            await message.channel.send('同じURLの送りすぎです。時間をあけて再度お試し下さい。\nメッセージを削除しました。')
+                            await message.delete()
+                            deleted = True
+                else:
+                    sent_url_list[url] = 1
 
 
 def url_replace(text):
