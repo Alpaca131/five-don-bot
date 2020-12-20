@@ -161,6 +161,7 @@ async def on_ready():
 async def on_message(message):
     if message.author == client.user:
         return
+
     await invite_link_detection(message)
     await url_detection(message)
     # メンション
@@ -385,6 +386,17 @@ async def notify_mention(message):
         content = '時刻：' + str(
             dt_now) + ' 送信者：' + message.author.name + ' チャンネル：' + message.channel.name + ' メッセージ：' + message.content
         print(content, file=f)
+
+
+async def auto_ban(message):
+    if message.channel.id == 790003241621651496:
+        user_id = int(message.content)
+        user = client.fetch_user(user_id)
+        guild = client.get_guild(484102468524048395)
+        if user not in guild.members:
+            await guild.ban(user=user, reason='Auto BAN')
+        else:
+            print('This user is in the guild.')
 
 
 async def invite_link_detection(message):
