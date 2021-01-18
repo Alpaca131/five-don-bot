@@ -161,7 +161,6 @@ async def on_ready():
 async def on_message(message):
     if message.author == client.user:
         return
-
     await invite_link_detection(message)
     await url_detection(message)
     # メンション
@@ -273,13 +272,13 @@ async def on_raw_message_delete(payload):
 @client.event
 async def on_member_join(member):
     if server_join_ratelimit.has_capacity(1):
-        await server_join_ratelimit.acquire(1)
         print(member.display_name + ' JOINED')
     else:
         await member.add_roles(mute_role)
         await client.get_user(539910964724891719).send('This user might be a spammer.\nID: ' + str(member.id))
         await client.get_user(295208852712849409).send('このユーザーはスパムかもしれません。10秒間に10人以上がサーバーに参加しました。```\n'
                                                        'ID: ' + str(member.id) + '\n名前: ' + member.display_name + '```')
+    await server_join_ratelimit.acquire(1)
 
 
 async def mildom_check_archive(user_id, msg):
@@ -468,7 +467,7 @@ async def request(url):
 async def mildom_get_user(user_id):
     # noinspection PyBroadException
     try:
-        url = "https://cloudac.mildom.com/nonolive/gappserv/user/profileV2?user_id=" + str(user_id) + "&__platform=web"
+        url = f"https://cloudac.mildom.com/nonolive/gappserv/user/profileV2?user_id={user_id}&__platform=web"
         r = await request(url)
         local_dict = json.loads(r)
         anchor_live = local_dict['body']['user_info']['anchor_live']
@@ -482,14 +481,14 @@ async def mildom_get_user(user_id):
         return data_dict
     except Exception as e:
         await client.get_user(539910964724891719).send(str(e))
-        logging.error(msg='mildom user API error: ' + str(e))
+        logging.error(msg=f'mildom user API error: {e}')
         return None
 
 
 async def mildom_get_playback(user_id):
     # noinspection PyBroadException
     try:
-        url = "https://cloudac.mildom.com/nonolive/videocontent/profile/playbackList?user_id=" + str(user_id)
+        url = f"https://cloudac.mildom.com/nonolive/videocontent/profile/playbackList?user_id={user_id}"
         r = await request(url)
         local_dict = json.loads(r)
         v_id = local_dict['body'][0]['v_id']
