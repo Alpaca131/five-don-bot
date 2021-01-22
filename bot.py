@@ -1,16 +1,19 @@
-from datetime import datetime, timedelta, timezone
-import discord
-from discord.ext import tasks
-import re
-from dispander import dispand
-import async_timeout
-import aiohttp
-import json
-import logging
-import sentry_sdk
-import settings
 import asyncio
+import json, time
+import logging
+import re
+from datetime import datetime, timedelta, timezone
+
+import aiohttp
+import async_timeout
+import discord
+import sentry_sdk
+import subprocess
 from aiolimiter import AsyncLimiter
+from discord.ext import tasks
+from dispander import dispand
+
+import settings
 
 TOKEN = settings.TOKEN
 DSN = settings.SENTRY_DSN
@@ -25,6 +28,7 @@ server_join_ratelimit = AsyncLimiter(time_period=10, max_rate=10)
 invite_link_ratelimit = AsyncLimiter(time_period=3600, max_rate=2)
 url_ratelimit = AsyncLimiter(time_period=60, max_rate=4)
 mildom_status = {}
+heart_beat = {}
 mention_dict = {484103635895058432: '<@&718449500729114664>', 484103660742115363: '<@&718449761409302580>',
                 484104086472491020: '<@&718450891744870530>', 484104317410738177: '<@&718450954613162015>',
                 484104150959783936: '<@&718451051102994473>', 484104415612239872: '<@&718451257332858920>',
@@ -58,6 +62,17 @@ live_status = 'first'
 log_path = 'home/alpaca-data/five-don-bot-log/log.txt'
 
 
+@tasks.loop(minutes=1)
+async def check_process_running():
+    if time.time() - heart_beat['mildom'] > 35:
+        logging.error('mildom process stopped.')
+    elif time.time() - heart_beat['openrec'] > 65:
+        logging.error('openrec process stopped.')
+    else:
+        return
+    subprocess.run(["sudo", "systemctl", "restart", "five-don-bot"])
+
+
 @tasks.loop(minutes=5)
 async def reset_sent_url_list():
     sent_url_list.clear()
@@ -67,6 +82,7 @@ async def reset_sent_url_list():
 async def mildom_archive():
     global mildom_count
     print('check mildom')
+    heart_beat['mildom'] = time.time()
     mildom_count = mildom_count + 1
     if mildom_count == 4:
         get_archive = True
@@ -91,6 +107,7 @@ async def mildom_archive():
 @tasks.loop(seconds=60)
 async def openrec_exam_every_30sec():
     global live_status, latest_live_link
+    heart_beat['openrec'] = time.time()
     dt_now = datetime.now(jst)
     start_year = dt_now.year - 1
     today_year = dt_now.year
@@ -154,6 +171,7 @@ async def on_ready():
     mildom_archive.start()
     openrec_exam_every_30sec.start()
     reset_sent_url_list.start()
+    check_process_running.start()
     print('ready')
 
 
