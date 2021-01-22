@@ -1,5 +1,5 @@
 # five-don-bot
-配信通知Botのレポジトリです
+Discordサーバー「ネオ宮古」専用のBotのレポジトリです。
 <h2>機能</h2>
 <ul type="disc">
   <li>Mildom配信通知</li>
