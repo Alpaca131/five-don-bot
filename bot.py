@@ -65,12 +65,11 @@ log_path = 'home/alpaca-data/five-don-bot-log/log.txt'
 @tasks.loop(minutes=1)
 async def check_process_running():
     if time.time() - heart_beat['mildom'] > 35:
-        logging.error('mildom process stopped.')
+        mildom_archive.restart()
     elif time.time() - heart_beat['openrec'] > 65:
-        logging.error('openrec process stopped.')
+        openrec_exam_every_30sec.restart()
     else:
         return
-    subprocess.run(["sudo", "systemctl", "restart", "five-don-bot"])
 
 
 @tasks.loop(minutes=5)
