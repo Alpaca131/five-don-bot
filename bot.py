@@ -8,7 +8,6 @@ import aiohttp
 import async_timeout
 import discord
 import sentry_sdk
-import subprocess
 from aiolimiter import AsyncLimiter
 from discord.ext import tasks
 from dispander import dispand
@@ -64,9 +63,16 @@ log_path = 'home/alpaca-data/five-don-bot-log/log.txt'
 
 @tasks.loop(minutes=1)
 async def check_process_running():
+    global mildom_count
     if time.time() - heart_beat['mildom'] > 35:
+        mildom_count = 0
+        del heart_beat['mildom']
+        for i in mildom_list:
+            user_id = i[0]
+            mildom_status[user_id] = 'offline'
         mildom_archive.restart()
     elif time.time() - heart_beat['openrec'] > 65:
+        del heart_beat['openrec']
         openrec_exam_every_30sec.restart()
     else:
         return
@@ -358,7 +364,7 @@ async def mildom_check_live(user_id, channel, mention_role, mildom_name, msg):
                     await msg.edit(content='［終了］' + msg.content)
             mildom_status[user_id] = 'offline'
     except Exception as e:
-        print(e)
+        await client.get_channel(742064458939105321).send(str(e))
 
 
 async def dm(message):
@@ -486,11 +492,11 @@ async def mildom_get_user(user_id):
     try:
         url = f"https://cloudac.mildom.com/nonolive/gappserv/user/profileV2?user_id={user_id}&__platform=web"
         r = await request(url)
-        local_dict = json.loads(r)
-        anchor_live = local_dict['body']['user_info']['anchor_live']
-        avatar_url = local_dict['body']['user_info']['avatar']
-        live_title = local_dict['body']['user_info']['anchor_intro']
-        thumbnail_url = local_dict['body']['user_info']['pic']
+        api_response = json.loads(r)
+        anchor_live = api_response['body']['user_info']['anchor_live']
+        avatar_url = api_response['body']['user_info']['avatar']
+        live_title = api_response['body']['user_info']['anchor_intro']
+        thumbnail_url = api_response['body']['user_info']['pic']
         data_dict = {'anchor_live': anchor_live,
                      'live_title': live_title,
                      'avatar_url': avatar_url,
