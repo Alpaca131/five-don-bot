@@ -176,6 +176,7 @@ async def on_ready():
     mildom_archive.start()
     openrec_exam_every_30sec.start()
     reset_sent_url_list.start()
+    await asyncio.sleep(2)
     check_process_running.start()
     print('ready')
 
@@ -195,12 +196,6 @@ async def on_message(message):
     # DM機能
     if message.guild is None:
         await dm(message=message)
-    # リアクションロール
-    if message.content.startswith("!reactionrole"):
-        if message.author.id != 295208852712849409:
-            return
-        for emoji in emoji_list:
-            await message.add_reaction(emoji)
     # Expand
     await dispand(message)
 
@@ -360,8 +355,11 @@ async def mildom_check_live(user_id, channel, mention_role, mildom_name, msg):
         # 配信中ではない場合
         else:
             if mildom_status.get(user_id) == 'online':
-                if '［終了］' not in msg.content:
-                    await msg.edit(content='［終了］' + msg.content)
+                content: str = msg.content
+                mentioned_role = msg.role_mentions[0]
+                if '［終了］' not in content:
+                    content = content.replace(f'<@&{mentioned_role.id}>', '')
+                    await msg.edit(content='［終了］' + content)
             mildom_status[user_id] = 'offline'
     except Exception as e:
         await client.get_channel(742064458939105321).send(str(e))
