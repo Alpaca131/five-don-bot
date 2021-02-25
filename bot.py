@@ -150,6 +150,8 @@ async def openrec_exam_every_30sec():
                         break
                     else:
                         continue
+                mentioned_role = msg.role_mentions[0]
+                msg.content = msg.content.replace(f'<@&{mentioned_role.id}>', '')
                 await msg.edit(content='［終了］' + msg.content)
             except NameError:
                 print('メッセージが存在しません')
