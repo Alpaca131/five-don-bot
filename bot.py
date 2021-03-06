@@ -83,7 +83,7 @@ async def reset_sent_url_list():
     sent_url_list.clear()
 
 
-@tasks.loop(seconds=15)
+@tasks.loop(seconds=20)
 async def mildom_archive():
     global mildom_count
     print('check mildom')
