@@ -1,7 +1,9 @@
 import asyncio
-import json, time
+import feedparser
+import json
 import logging
 import re
+import time
 from datetime import datetime, timedelta, timezone
 
 import aiohttp
@@ -38,6 +40,24 @@ mildom_list = [['10105254', '484103635895058432', '<@&718449500729114664>', 'KUN
                ['10724334', '484104317410738177', '<@&718450954613162015>', 'Tanaka90'],
                ['10116311', '571440864761741325', '<@&718451311393243139>', 'Sovault'],
                ['10080489', '484104415612239872', '<@&718451257332858920>', 'まんさや']]
+"""
+KUN
+tanaka90
+rikito
+EXAM
+saya
+Sovault
+abobo
+"""
+youtube_ch_id_list = {'UCGjV4bsC43On-YuiLZcfL0w': 541259764357922837,
+                      'UCE2PvzXYbNdLUEgdCIrkQqw': 541679922867994641,
+                      'UC0Z60kCcQ8VIk5c29sPS9Jw': 541679834040893441,
+                      'UC0VoI57B2_63MErt_1QBpxA': 541680011006967818,
+                      'UCk-m-OXRVEXUolSWtmY56oA': 541680078896234499,
+                      'UC-8IQG9ldD4C5NNeMpBIkXw': 571441032097693736,
+                      'UC7R9svaqJMU_FsMlkMTEf2Q': 647688423255179285}
+
+latest_v_ids = {}
 
 reaction_dict = {'01kun': 'L-KUN', '05tnk90': 'L-tn90', '06exam': 'L-EXAM', '11sova': 'L-Sova', '04riki': 'L-rikito',
                  '02mav': 'L-MAV', '07sayaA': 'L-saya', '08delfin': 'L-fiN', '10abo': 'L-abo', '03ryu': 'L-Ryu'}
@@ -157,6 +177,20 @@ async def openrec_exam_every_30sec():
                 print('メッセージが存在しません')
         elif live_status == 'first':
             live_status = 'false'
+
+
+@tasks.loop(minutes=5)
+async def check_youtube():
+    for yt_ch_id in youtube_ch_id_list:
+        r = feedparser.parse(f'https://www.youtube.com/feeds/videos.xml?channel_id={yt_ch_id}')
+        discord_ch = client.get_channel(youtube_ch_id_list[yt_ch_id])
+        latest_v_id = r['entries'][0]['id'][9:]
+        stored_v_id = latest_v_ids.get(yt_ch_id)
+        if stored_v_id is None:
+            latest_v_ids[yt_ch_id] = latest_v_id
+        elif stored_v_id != latest_v_id:
+            await discord_ch.send(f'動画がUPされました。\nhttps://www.youtube.com/watch?v={latest_v_id}')
+            latest_v_ids[yt_ch_id] = latest_v_id
 
 
 @client.event
