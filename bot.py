@@ -48,6 +48,9 @@ EXAM
 saya
 Sovault
 abobo
+delfin
+mavnyan
+ryunyan
 """
 youtube_ch_id_list = {'UCGjV4bsC43On-YuiLZcfL0w': 541259764357922837,
                       'UCE2PvzXYbNdLUEgdCIrkQqw': 541679922867994641,
@@ -55,7 +58,11 @@ youtube_ch_id_list = {'UCGjV4bsC43On-YuiLZcfL0w': 541259764357922837,
                       'UC0VoI57B2_63MErt_1QBpxA': 541680011006967818,
                       'UCk-m-OXRVEXUolSWtmY56oA': 541680078896234499,
                       'UC-8IQG9ldD4C5NNeMpBIkXw': 571441032097693736,
-                      'UC7R9svaqJMU_FsMlkMTEf2Q': 647688423255179285}
+                      'UC7R9svaqJMU_FsMlkMTEf2Q': 647688423255179285,
+                      'UCy41m_l93UNEQK-TFQ7YRSg': 541680146512609280,
+                      'UCXCoqJeKIfPBHkugSFNCGew': 541679468775997460,
+                      'UCQH8DfT8RtqzgGMRRjhMmbw': 541679741141516308,
+                      }
 
 latest_v_ids = {}
 
