@@ -219,6 +219,7 @@ async def on_ready():
     mildom_archive.start()
     openrec_exam_every_30sec.start()
     reset_sent_url_list.start()
+    check_youtube.start()
     await asyncio.sleep(2)
     check_process_running.start()
     print('ready')
