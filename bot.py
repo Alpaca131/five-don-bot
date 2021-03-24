@@ -98,11 +98,9 @@ async def check_process_running():
             user_id = i[0]
             mildom_status[user_id] = 'offline'
         mildom_archive.restart()
-    elif time.time() - heart_beat['openrec'] > 65:
+    if time.time() - heart_beat['openrec'] > 65:
         del heart_beat['openrec']
         openrec_exam_every_30sec.restart()
-    else:
-        return
 
 
 @tasks.loop(minutes=5)
@@ -216,6 +214,8 @@ async def on_ready():
         auto_notify_message[int(user_id)] = msg.id
     # 暫定的にWelcomeロールに設定
     mute_role = discord.utils.get(client.get_guild(484102468524048395).roles, id=734047235574071304)
+    heart_beat['openrec'] = time.time()
+    heart_beat['mildom'] = time.time()
     mildom_archive.start()
     openrec_exam_every_30sec.start()
     reset_sent_url_list.start()
