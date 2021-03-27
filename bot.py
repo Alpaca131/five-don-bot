@@ -190,12 +190,19 @@ async def check_youtube():
         r = feedparser.parse(f'https://www.youtube.com/feeds/videos.xml?channel_id={yt_ch_id}')
         discord_ch = client.get_channel(youtube_ch_id_list[yt_ch_id])
         latest_v_id = r['entries'][0]['id'][9:]
-        stored_v_id = latest_v_ids.get(yt_ch_id)
+        stored_v_id: list = latest_v_ids.get(yt_ch_id)
         if stored_v_id is None:
-            latest_v_ids[yt_ch_id] = latest_v_id
-        elif stored_v_id != latest_v_id:
+            latest_v_ids[yt_ch_id] = [latest_v_id]
+        elif latest_v_id not in stored_v_id:
+            # 最大3件のv_idを保存
+            if len(stored_v_id) > 2:
+                for i in stored_v_id:
+                    index = stored_v_id.index(i)
+                    if index > 1:
+                        stored_v_id.remove(i)
+            stored_v_id.append(latest_v_id)
+            latest_v_ids[yt_ch_id] = stored_v_id
             await discord_ch.send(f'動画がUPされました。\nhttps://www.youtube.com/watch?v={latest_v_id}')
-            latest_v_ids[yt_ch_id] = latest_v_id
 
 
 @client.event
