@@ -28,6 +28,7 @@ jst = timezone(timedelta(hours=9), 'JST')
 server_join_ratelimit = AsyncLimiter(time_period=10, max_rate=10)
 invite_link_ratelimit = AsyncLimiter(time_period=3600, max_rate=2)
 url_ratelimit = AsyncLimiter(time_period=60, max_rate=4)
+message_ratelimit = AsyncLimiter(time_period=10, max_rate=20)
 mildom_status = {}
 heart_beat = {}
 mention_dict = {484103635895058432: '<@&718449500729114664>', 484103660742115363: '<@&718449761409302580>',
@@ -79,6 +80,7 @@ mute_role = None
 latest_live_link = ''
 reaction_id = 731559319354605589
 mildom_count = 0
+is_locked_down = False
 regex_discord_message_url = (
     r'https://(ptb.|canary.)?discord(app)?.com/channels/'
     '[0-9]{18}/[0-9]{18}/[0-9]{18}'
@@ -236,6 +238,8 @@ async def on_ready():
 async def on_message(message):
     if message.author == client.user:
         return
+    # spam_check
+    await check_message_ratelimit(message)
     await invite_link_detection(message)
     await url_detection(message)
     # メンション
@@ -570,6 +574,20 @@ async def mildom_get_playback(user_id):
         await client.get_user(539910964724891719).send(str(e))
         logging.error(msg='mildom playback API error: ' + str(e))
         return None, None
+
+
+async def check_message_ratelimit(message):
+    global is_locked_down
+    if is_locked_down:
+        await message.delete()
+    if message_ratelimit.has_capacity(1):
+        await message_ratelimit.acquire(1)
+    else:
+        await message.channel.send('スパムの可能性があるためチャンネルを10分間ロックしました。\n'
+                                   'お手数ですが、誤動作の場合はAlpaca#8032にご連絡をお願いします。')
+        is_locked_down = True
+        await asyncio.sleep(600)
+        is_locked_down = False
 
 
 client.run(TOKEN)
