@@ -564,7 +564,7 @@ async def mildom_get_user(user_id):
 async def mildom_get_playback(user_id):
     # noinspection PyBroadException
     try:
-        url = f"https://cloudac.mildom.com/nonolive/videocontent/profile/playbackList?user_id={user_id}"
+        url = f"https://cloudac.mildom.com/nonolive/videocontent/profile/playbackList?__platform=web&user_id={user_id}"
         r = await request(url)
         local_dict = json.loads(r)
         v_id = local_dict['body'][0]['v_id']
