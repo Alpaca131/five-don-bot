@@ -4,7 +4,6 @@ import json
 import logging
 import re
 import time
-from datetime import datetime, timedelta, timezone
 
 import aiohttp
 import async_timeout
@@ -24,7 +23,6 @@ sentry_sdk.init(
     DSN,
     traces_sample_rate=1.0
 )
-jst = timezone(timedelta(hours=9), 'JST')
 server_join_ratelimit = AsyncLimiter(time_period=10, max_rate=10)
 invite_link_ratelimit = AsyncLimiter(time_period=3600, max_rate=2)
 url_ratelimit = AsyncLimiter(time_period=60, max_rate=4)
@@ -140,34 +138,23 @@ async def mildom_archive():
 async def openrec_exam_every_30sec():
     global live_status, latest_live_link
     heart_beat['openrec'] = time.time()
-    dt_now = datetime.now(jst)
-    start_year = dt_now.year - 1
-    today_year = dt_now.year
-    today_month = dt_now.month
-    today_day = dt_now.day
-    download_url = "https://www.openrec.tv/viewapp/api/v3/get_movie_list?start_date=" + str(
-        start_year) + "%2F01%2F01&end_date=" + str(today_year) + "%2F" + str(today_month) + "%2F" + str(
-        today_day) + "&upload_type=0&movie_sort_type=UD&movie_sort_direction=1&game_id=&tag=&recxuser_id=19580443" \
-                     "&date_status=all&Uuid=914F0026-1056-CA80-42A8-E8738D0FEDE4&Token" \
-                     "=313b054f4b052ac6701856aa639fd3fcbfe63ab7&Random=OLROWOKRVNNUNZPUEZCS&page_number=1&list_limit" \
-                     "=40&list_offset=0"
-    content = await request(url=download_url)
-    if '"onair_status":"1"' in content:
+    download_url = "https://public.openrec.tv/external/api/v5/movies?channel_ids=EXMeee&onair_status=1"
+    response = await request(url=download_url)
+    content = json.loads(response)
+    if len(content) != 0:
         print('Exam-on-live')
-        live_list = re.findall('"identify_id":"[a-zA-Z0-9!-/:-@¥[-`{-~]{11}","comment":"', content)
-        latest_live = live_list[-1]
-        latest_live_link = 'https://www.openrec.tv/live/' + latest_live[-24:-13]
-        live_list.clear()
-        if live_status == 'false':
+        live_id = content[0]['id']
+        latest_live_link = 'https://www.openrec.tv/live/' + live_id
+        if live_status is False:
             await client.get_channel(484104150959783936).send(
                 "<@&718451051102994473> EXAMさんが配信を開始しました。\n" + latest_live_link)
-            live_status = 'true'
+            live_status = True
         elif live_status == 'first':
-            live_status = 'true'
+            live_status = True
     else:
         print('Exam-not-live')
-        if live_status == 'true':
-            live_status = 'false'
+        if live_status is True:
+            live_status = False
             try:
                 msg_ch = client.get_channel(484104150959783936)
                 msg = ''
@@ -183,7 +170,7 @@ async def openrec_exam_every_30sec():
             except NameError:
                 print('メッセージが存在しません')
         elif live_status == 'first':
-            live_status = 'false'
+            live_status = False
 
 
 @tasks.loop(minutes=5)
