@@ -1,5 +1,4 @@
 import asyncio
-import feedparser
 import json
 import logging
 import re
@@ -8,6 +7,7 @@ import time
 import aiohttp
 import async_timeout
 import discord
+import feedparser
 import sentry_sdk
 from aiolimiter import AsyncLimiter
 from discord.ext import tasks
@@ -443,7 +443,7 @@ async def notify_mention(message):
     text_mod = url_replace(text=message.content)
     await message.channel.send(
         mention_dict.get(message.channel.id) + '\n' + text_mod + '\n`[' + str(message.id) + ']`')
-    dt_now = datetime.now(jst)
+    dt_now = time.time()
     with open(log_path, 'a') as f:
         content = '時刻：' + str(
             dt_now) + ' 送信者：' + message.author.name + ' チャンネル：' + message.channel.name + ' メッセージ：' + message.content
