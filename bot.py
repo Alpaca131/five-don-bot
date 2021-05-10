@@ -90,6 +90,8 @@ log_path = 'home/alpaca-data/five-don-bot-log/log.txt'
 @tasks.loop(minutes=1)
 async def check_process_running():
     global mildom_count
+    if "mildom" not in heart_beat or "openrec" not in heart_beat:
+        return
     if time.time() - heart_beat['mildom'] > 35:
         mildom_count = 0
         del heart_beat['mildom']
