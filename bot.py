@@ -1,6 +1,5 @@
 import asyncio
 import json
-import logging
 import re
 import time
 
@@ -345,66 +344,58 @@ async def mildom_check_archive(user_id, msg):
     """
     アーカイブチェック
     """
-    # エラーの原因が判明するまでの応急処置
-    try:
-        if '［アーカイブ］' in msg.content:
-            return
-        v_id, title = await mildom_get_playback(user_id)
-        if v_id is None:
-            return
-        archive_url = 'https://www.mildom.com/playback/' + user_id + '?v_id=' + str(v_id)
-        old_archive = archive.get(user_id)
-        if old_archive is None:
-            archive[user_id] = archive_url
-            return
-        if old_archive != archive_url:
-            if len(msg.embeds) == 0:
-                return
-            embed = msg.embeds[0]
-            embed.title = '［アーカイブ］' + title
-            embed.url = archive_url
-            await msg.edit(embed=embed)
+    if '［アーカイブ］' in msg.content:
+        return
+    v_id, title = await mildom_get_playback(user_id)
+    if v_id is None:
+        return
+    archive_url = 'https://www.mildom.com/playback/' + user_id + '?v_id=' + str(v_id)
+    old_archive = archive.get(user_id)
+    if old_archive is None:
         archive[user_id] = archive_url
         return
-    except Exception as e:
-        print(e)
+    if old_archive != archive_url:
+        if len(msg.embeds) == 0:
+            return
+        embed = msg.embeds[0]
+        embed.title = '［アーカイブ］' + title
+        embed.url = archive_url
+        await msg.edit(embed=embed)
+    archive[user_id] = archive_url
+    return
 
 
 async def mildom_check_live(user_id, channel, mention_role, mildom_name, msg):
     """
     配信状況チェック
     """
-    # エラーの原因が判明するまでの応急処置
-    try:
-        r = await mildom_get_user(user_id)
-        if r is None:
-            return
-        anchor_live = r['anchor_live']
-        # 配信中の場合
-        if anchor_live == 11:
-            if mildom_status.get(user_id) == 'offline':
-                embed = discord.Embed(title=r['live_title'],
-                                      url='https://mildom.com/' + user_id,
-                                      color=discord.Colour.blue())
-                embed.set_thumbnail(url=r['thumbnail_url'])
-                embed.set_author(name=mildom_name,
-                                 icon_url=r['avatar_url'])
-                notify_message = await channel.send(mention_role + ' ' + mildom_name + 'さんが配信を開始しました。',
-                                                    embed=embed)
-                auto_notify_message[int(user_id)] = notify_message.id
-            mildom_status[user_id] = 'online'
+    r = await mildom_get_user(user_id)
+    if r is None:
+        return
+    anchor_live = r['anchor_live']
+    # 配信中の場合
+    if anchor_live == 11:
+        if mildom_status.get(user_id) == 'offline':
+            embed = discord.Embed(title=r['live_title'],
+                                  url='https://mildom.com/' + user_id,
+                                  color=discord.Colour.blue())
+            embed.set_thumbnail(url=r['thumbnail_url'])
+            embed.set_author(name=mildom_name,
+                             icon_url=r['avatar_url'])
+            notify_message = await channel.send(mention_role + ' ' + mildom_name + 'さんが配信を開始しました。',
+                                                embed=embed)
+            auto_notify_message[int(user_id)] = notify_message.id
+        mildom_status[user_id] = 'online'
 
-        # 配信中ではない場合
-        else:
-            if mildom_status.get(user_id) == 'online':
-                content: str = msg.content
-                mentioned_role = msg.role_mentions[0]
-                if '［終了］' not in content:
-                    content = content.replace(f'<@&{mentioned_role.id}>', '')
-                    await msg.edit(content='［終了］' + content)
-            mildom_status[user_id] = 'offline'
-    except Exception as e:
-        await client.get_channel(742064458939105321).send(str(e))
+    # 配信中ではない場合
+    else:
+        if mildom_status.get(user_id) == 'online':
+            content: str = msg.content
+            mentioned_role = msg.role_mentions[0]
+            if '［終了］' not in content:
+                content = content.replace(f'<@&{mentioned_role.id}>', '')
+                await msg.edit(content='［終了］' + content)
+        mildom_status[user_id] = 'offline'
 
 
 async def dm(message):
@@ -528,39 +519,27 @@ async def request(url):
 
 
 async def mildom_get_user(user_id):
-    # noinspection PyBroadException
-    try:
-        url = f"https://cloudac.mildom.com/nonolive/gappserv/user/profileV2?user_id={user_id}&__platform=web"
-        r = await request(url)
-        api_response = json.loads(r)
-        anchor_live = api_response['body']['user_info']['anchor_live']
-        avatar_url = api_response['body']['user_info']['avatar']
-        live_title = api_response['body']['user_info']['anchor_intro']
-        thumbnail_url = api_response['body']['user_info']['pic']
-        data_dict = {'anchor_live': anchor_live,
-                     'live_title': live_title,
-                     'avatar_url': avatar_url,
-                     'thumbnail_url': thumbnail_url}
-        return data_dict
-    except Exception as e:
-        await client.get_user(539910964724891719).send(str(e))
-        logging.error(msg=f'mildom user API error: {e}')
-        return None
+    url = f"https://cloudac.mildom.com/nonolive/gappserv/user/profileV2?user_id={user_id}&__platform=web"
+    r = await request(url)
+    api_response = json.loads(r)
+    anchor_live = api_response['body']['user_info']['anchor_live']
+    avatar_url = api_response['body']['user_info']['avatar']
+    live_title = api_response['body']['user_info']['anchor_intro']
+    thumbnail_url = api_response['body']['user_info']['pic']
+    data_dict = {'anchor_live': anchor_live,
+                 'live_title': live_title,
+                 'avatar_url': avatar_url,
+                 'thumbnail_url': thumbnail_url}
+    return data_dict
 
 
 async def mildom_get_playback(user_id):
-    # noinspection PyBroadException
-    try:
-        url = f"https://cloudac.mildom.com/nonolive/videocontent/profile/playbackList?__platform=web&user_id={user_id}"
-        r = await request(url)
-        local_dict = json.loads(r)
-        v_id = local_dict['body'][0]['v_id']
-        title = local_dict['body'][0]['title']
-        return v_id, title
-    except Exception as e:
-        await client.get_user(539910964724891719).send(str(e))
-        logging.error(msg='mildom playback API error: ' + str(e))
-        return None, None
+    url = f"https://cloudac.mildom.com/nonolive/videocontent/profile/playbackList?__platform=web&user_id={user_id}"
+    r = await request(url)
+    local_dict = json.loads(r)
+    v_id = local_dict['body'][0]['v_id']
+    title = local_dict['body'][0]['title']
+    return v_id, title
 
 
 async def check_message_ratelimit(message):
