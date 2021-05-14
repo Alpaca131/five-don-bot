@@ -98,10 +98,10 @@ async def check_process_running():
         for i in mildom_list:
             user_id = i[0]
             mildom_status[user_id] = 'offline'
-        mildom_archive.restart()
+        mildom_archive.start()
     if time.time() - heart_beat['openrec'] > 65:
         del heart_beat['openrec']
-        openrec_exam_every_30sec.restart()
+        openrec_exam_every_30sec.start()
 
 
 @tasks.loop(minutes=5)
