@@ -32,12 +32,15 @@ mention_dict = {484103635895058432: '<@&718449500729114664>', 484103660742115363
                 484104086472491020: '<@&718450891744870530>', 484104317410738177: '<@&718450954613162015>',
                 484104150959783936: '<@&718451051102994473>', 484104415612239872: '<@&718451257332858920>',
                 484104516934041615: '<@&718451718106382417>', 571440864761741325: '<@&718451311393243139>',
-                647688309325168651: '<@&718451366699466753>', 484103980440354821: '<@&718451434684809308>'}
+                647688309325168651: '<@&718451366699466753>', 484103980440354821: '<@&718451434684809308>',
+                855021021601988608: '<@&855021425952686113>', 855021095123025960: '<@&855021753151651860>'}
 
 mildom_list = [['10105254', '484103635895058432', '<@&718449500729114664>', 'KUN'],
                ['10724334', '484104317410738177', '<@&718450954613162015>', 'Tanaka90'],
                ['10116311', '571440864761741325', '<@&718451311393243139>', 'Sovault'],
-               ['10080489', '484104415612239872', '<@&718451257332858920>', 'まんさや']]
+               ['10080489', '484104415612239872', '<@&718451257332858920>', 'まんさや'],
+               ['10846882', '855021021601988608', '<@&855021425952686113>', 'はつめ'],
+               ['10429922', '855021095123025960', '<@&855021753151651860>', 'Mondo']]
 """
 KUN
 tanaka90
@@ -49,6 +52,8 @@ abobo
 delfin
 mavnyan
 ryunyan
+はつめ
+mondo
 """
 youtube_ch_id_list = {'UCGjV4bsC43On-YuiLZcfL0w': 541259764357922837,
                       'UCE2PvzXYbNdLUEgdCIrkQqw': 541679922867994641,
@@ -60,22 +65,25 @@ youtube_ch_id_list = {'UCGjV4bsC43On-YuiLZcfL0w': 541259764357922837,
                       'UCy41m_l93UNEQK-TFQ7YRSg': 541680146512609280,
                       'UCXCoqJeKIfPBHkugSFNCGew': 541679468775997460,
                       'UCQH8DfT8RtqzgGMRRjhMmbw': 541679741141516308,
+                      'UCq1FEiGmyh-52yYGeOMTVLA': 855022506360307724,
+                      'UCqc7_so3xdZJnSlfDjphwpg': 855022637927366696
                       }
 
 latest_v_ids = {}
 
 reaction_dict = {'01kun': 'L-KUN', '05tnk90': 'L-tn90', '06exam': 'L-EXAM', '11sova': 'L-Sova', '04riki': 'L-rikito',
-                 '02mav': 'L-MAV', '07sayaA': 'L-saya', '08delfin': 'L-fiN', '10abo': 'L-abo', '03ryu': 'L-Ryu'}
+                 '02mav': 'L-MAV', '07sayaA': 'L-saya', '08delfin': 'L-fiN', '10abo': 'L-abo', '03ryu': 'L-Ryu',
+                 '13htsm': 'L-htsm', '14mnd1': 'L-Mnd'}
 
 emoji_list = ['<:01kun:503956099343581185>', '<:02mav:503956138404872202>', '<:04riki:503956260006133760>',
               '<:05tnk90:503956313110478849>', '<:06exam:503956340939685888>', '<:07sayaA:503956355602972685>',
               '<:08delfin:503956370714787872>', '<:11sova:530672411574534154>', '<:10abo:537845803247730690>',
-              '<:03ryu:503956243417792543>']
+              '<:03ryu:503956243417792543>', '<:13htsm:818841802131111976>', '<:14mnd1:818841802081304577>']
 archive = {}
 auto_notify_message = {}
 mute_role = None
 latest_live_link = ''
-reaction_id = 731559319354605589
+reaction_message_id = 731559319354605589
 mildom_count = 0
 is_locked_down = False
 regex_discord_message_url = (
@@ -246,7 +254,7 @@ async def on_message(message):
 @client.event
 async def on_raw_reaction_add(payload):
     message_id = payload.message_id
-    if message_id == reaction_id:
+    if message_id == reaction_message_id:
         guild_id = payload.guild_id
         guild = discord.utils.find(lambda g: g.id == guild_id, client.guilds)
         if payload.emoji.name in reaction_dict:
@@ -273,7 +281,7 @@ async def on_raw_reaction_add(payload):
 @client.event
 async def on_raw_reaction_remove(payload):
     message_id = payload.message_id
-    if message_id == reaction_id:
+    if message_id == reaction_message_id:
         guild_id = payload.guild_id
         guild = discord.utils.find(lambda g: g.id == guild_id, client.guilds)
 
