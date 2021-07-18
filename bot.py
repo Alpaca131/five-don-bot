@@ -92,7 +92,7 @@ regex_discord_message_url = (
 )
 sent_url_list = {}
 live_status = 'first'
-log_path = 'home/alpaca-data/five-don-bot-log/log.txt'
+log_path = '/home/alpaca-data/five-don-bot-log/log.txt'
 
 
 @tasks.loop(minutes=1)
@@ -207,7 +207,7 @@ async def check_youtube():
 async def on_ready():
     global mute_role
     for value_list in mildom_list:
-        user_id = value_list[0]
+        mildom_user_id = value_list[0]
         channel_id = value_list[1]
         channel = client.get_channel(int(channel_id))
         msg = None
@@ -216,7 +216,7 @@ async def on_ready():
                 if re.search(r'`\[\d+]`', msg_history.content) is None:
                     msg = msg_history
                     break
-        auto_notify_message[int(user_id)] = msg.id
+        auto_notify_message[int(mildom_user_id)] = msg.id
     # 暫定的にWelcomeロールに設定
     mute_role = discord.utils.get(client.get_guild(484102468524048395).roles, id=734047235574071304)
     heart_beat['openrec'] = time.time()
