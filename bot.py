@@ -11,6 +11,7 @@ import sentry_sdk
 from aiolimiter import AsyncLimiter
 from discord.ext import tasks
 from dispander import dispand
+from discordTogether import DiscordTogether
 
 import settings
 
@@ -18,6 +19,7 @@ TOKEN = settings.TOKEN
 DSN = settings.SENTRY_DSN
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
+togetherControl = DiscordTogether(client)
 sentry_sdk.init(
     DSN,
     traces_sample_rate=1.0
@@ -247,6 +249,8 @@ async def on_message(message):
     # DM機能
     if message.guild is None:
         await dm(message=message)
+    if message.channel.id == 484102995445809162:
+        await discord_together(message)
     # Expand
     await dispand(message)
 
@@ -451,15 +455,22 @@ async def notify_mention(message):
         print(content, file=f)
 
 
-async def auto_ban(message):
-    if message.channel.id == 790003241621651496:
-        user_id = int(message.content)
-        user = client.fetch_user(user_id)
-        guild = client.get_guild(484102468524048395)
-        if user not in guild.members:
-            await guild.ban(user=user, reason='Auto BAN')
-        else:
-            print('This user is in the guild.')
+async def discord_together(message):
+    if client.user.id not in message.raw_mentions:
+        return
+    youtube_link = await togetherControl.create_link(message.author.voice.channel.id, 'youtube')
+    poker_link = await togetherControl.create_link(message.author.voice.channel.id, 'poker')
+    chess_link = await togetherControl.create_link(message.author.voice.channel.id, 'chess')
+    betrayal_link = await togetherControl.create_link(message.author.voice.channel.id, 'betrayal')
+    fishing_link = await togetherControl.create_link(message.author.voice.channel.id, 'fishing')
+    await message.channel.send(
+        f"""
+        >>> YouTube: {youtube_link}
+        ポーカー: {poker_link}
+        チェス: {chess_link}
+        Betrayal.io: {betrayal_link}
+        Fishington.io: {fishing_link}
+        """)
 
 
 async def invite_link_detection(message):
