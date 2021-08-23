@@ -465,11 +465,11 @@ async def discord_together(message):
     fishing_link = await togetherControl.create_link(message.author.voice.channel.id, 'fishing')
     await message.channel.send(
         f"""
->>> YouTube: {youtube_link}
-ポーカー: {poker_link}
-チェス: {chess_link}
-Betrayal.io: {betrayal_link}
-Fishington.io: {fishing_link}
+>>> YouTube: <{youtube_link}>
+ポーカー: <{poker_link}>
+チェス: <{chess_link}>
+Betrayal.io: <{betrayal_link}>
+Fishington.io: <{fishing_link}>
 """)
 
 
