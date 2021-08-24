@@ -463,14 +463,10 @@ async def discord_together(message):
     chess_link = await togetherControl.create_link(message.author.voice.channel.id, 'chess')
     betrayal_link = await togetherControl.create_link(message.author.voice.channel.id, 'betrayal')
     fishing_link = await togetherControl.create_link(message.author.voice.channel.id, 'fishing')
-    await message.channel.send(
-        f"""
->>> [YouTube]({youtube_link})
-[ポーカー]({poker_link})
-[チェス]({chess_link})
-[Betrayal.io]({betrayal_link})
-[Fishington.io]({fishing_link})
-""")
+    embed = discord.Embed(description=f"[YouTube]({youtube_link})\n\n[ポーカー]({poker_link})"
+                                      f"\n\n[チェス]({chess_link})\n\n[Betrayal.io]({betrayal_link})"
+                                      f"\n\n[Fishington.io]({fishing_link})")
+    await message.channel.send(embed=embed)
 
 
 async def invite_link_detection(message):
