@@ -94,7 +94,7 @@ regex_discord_message_url = (
 )
 sent_url_list = {}
 live_status = 'first'
-log_path = '/home/alpaca-data/five-don-bot-log/log.txt'
+log_path = '/home/ubuntu/five-don-bot-log/log.txt'
 
 
 @tasks.loop(minutes=1)
@@ -102,7 +102,7 @@ async def check_process_running():
     global mildom_count
     if "mildom" not in heart_beat or "openrec" not in heart_beat:
         return
-    if time.time() - heart_beat['mildom'] > 35:
+    if time.time() - heart_beat['mildom'] > 45:
         mildom_count = 0
         del heart_beat['mildom']
         for i in mildom_list:
@@ -119,7 +119,7 @@ async def reset_sent_url_list():
     sent_url_list.clear()
 
 
-@tasks.loop(seconds=30)
+@tasks.loop(seconds=40)
 async def mildom_archive():
     global mildom_count
     print('check mildom')
