@@ -97,6 +97,14 @@ live_status = 'first'
 log_path = '/home/ubuntu/five-don-bot-log/log.txt'
 
 
+@tasks.loop(seconds=30)
+async def heartbeat_post(self):
+    await self.request(
+        "https://botdd.alpaca131.com/api/heartbeat",
+        headers={"Authorization": "Bearer " + settings.HEARTBEAT_TOKEN},
+    )
+
+
 @tasks.loop(minutes=1)
 async def check_process_running():
     global mildom_count
