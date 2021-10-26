@@ -11,7 +11,7 @@ import sentry_sdk
 from aiolimiter import AsyncLimiter
 from discord.ext import tasks
 from dispander import dispand
-from discordTogether import DiscordTogether
+from discord_together import DiscordTogether
 
 import settings
 
@@ -19,7 +19,7 @@ TOKEN = settings.TOKEN
 DSN = settings.SENTRY_DSN
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
-togetherControl = DiscordTogether(client)
+togetherControl = DiscordTogether(token=settings.TOKEN)
 sentry_sdk.init(
     DSN,
     traces_sample_rate=1.0
