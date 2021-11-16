@@ -58,6 +58,7 @@ ryunyan
 mondo
 """
 youtube_ch_id_list = {'UCGjV4bsC43On-YuiLZcfL0w': 541259764357922837,
+                      'UCFQu6Q-9LAS3KoEuRDNkzGA': 541259764357922837,
                       'UCE2PvzXYbNdLUEgdCIrkQqw': 541679922867994641,
                       'UC0Z60kCcQ8VIk5c29sPS9Jw': 541679834040893441,
                       'UC0VoI57B2_63MErt_1QBpxA': 541680011006967818,
