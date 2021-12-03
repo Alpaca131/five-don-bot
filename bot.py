@@ -204,7 +204,7 @@ async def check_youtube():
             latest_v_ids[yt_ch_id] = [latest_v_id]
         elif latest_v_id not in stored_v_id:
             # 最大3件のv_idを保存
-            if len(stored_v_id) > 2:
+            if len(stored_v_id) > 5:
                 for i in stored_v_id:
                     index = stored_v_id.index(i)
                     if index > 1:
