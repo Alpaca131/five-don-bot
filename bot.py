@@ -146,10 +146,14 @@ async def mildom_archive():
         ch = client.get_channel(int(val[1]))
         msg_id = auto_notify_message[int(user_id)]
         msg = await ch.fetch_message(msg_id)
-        await mildom_check_live(user_id=user_id,
-                                channel=ch,
-                                mention_role=mention_role,
-                                mildom_name=name, msg=msg)
+        try:
+            await mildom_check_live(user_id=user_id,
+                                    channel=ch,
+                                    mention_role=mention_role,
+                                    mildom_name=name, msg=msg)
+        # Mildomのレートリミット
+        except ConnectionRefusedError:
+            return
         if get_archive:
             await mildom_check_archive(user_id=user_id, msg=msg)
 
@@ -393,8 +397,6 @@ async def mildom_check_live(user_id, channel, mention_role, mildom_name, msg):
     配信状況チェック
     """
     r = await mildom_get_user(user_id)
-    if r is None:
-        return
     anchor_live = r['anchor_live']
     # 配信中の場合
     if anchor_live == 11:
@@ -548,6 +550,8 @@ async def mildom_get_user(user_id):
     url = f"https://cloudac.mildom.com/nonolive/gappserv/user/profileV2?user_id={user_id}&__platform=web"
     r = await request(url)
     api_response = json.loads(r)
+    if api_response["code"] == 1:
+        raise ConnectionRefusedError("rate limit exceeded. code: 1")
     anchor_live = api_response['body']['user_info']['anchor_live']
     avatar_url = api_response['body']['user_info']['avatar']
     live_title = api_response['body']['user_info']['anchor_intro']
