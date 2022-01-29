@@ -8,3 +8,4 @@ python-dotenv~=0.15.0
 setuptools==47.1.1
 feedparser
 aiohttp~=3.6.3
+streamlink

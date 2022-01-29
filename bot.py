@@ -8,6 +8,7 @@ import async_timeout
 import discord
 import feedparser
 import sentry_sdk
+import streamlink
 from aiolimiter import AsyncLimiter
 from discord.ext import tasks
 from dispander import dispand
@@ -30,6 +31,8 @@ url_ratelimit = AsyncLimiter(time_period=60, max_rate=4)
 message_ratelimit = AsyncLimiter(time_period=10, max_rate=20)
 mildom_status = {}
 heart_beat = {}
+exam_youtube_on_live = False
+exam_youtube_notify_message = None
 mention_dict = {484103635895058432: '<@&718449500729114664>', 484103660742115363: '<@&718449761409302580>',
                 484104086472491020: '<@&718450891744870530>', 484104317410738177: '<@&718450954613162015>',
                 484104150959783936: '<@&718451051102994473>', 484104415612239872: '<@&718451257332858920>',
@@ -104,6 +107,27 @@ async def heartbeat_post(self):
         "https://botdd.alpaca131.com/api/heartbeat",
         headers={"Authorization": "Bearer " + settings.HEARTBEAT_TOKEN},
     )
+
+
+@tasks.loop(seconds=30)
+async def check_exam_youtube():
+    global exam_youtube_on_live, exam_youtube_notify_message
+    try:
+        stream = streamlink.streams("https://www.youtube.com/channel/UC0VoI57B2_63MErt_1QBpxA/live")
+    except streamlink.exceptions.PluginError:
+        stream = None
+    if stream:
+        is_live = True
+    else:
+        is_live = False
+
+    if exam_youtube_on_live is False and is_live is True:
+        channel = client.get_channel(484104150959783936)
+        message = await channel.send("https://www.youtube.com/channel/UC0VoI57B2_63MErt_1QBpxA/live")
+        exam_youtube_notify_message = message
+    elif exam_youtube_on_live is True and is_live is False:
+        await exam_youtube_notify_message.edit("配信は終了しました。")
+    exam_youtube_on_live = is_live
 
 
 @tasks.loop(minutes=1)
