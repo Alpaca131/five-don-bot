@@ -242,6 +242,21 @@ async def check_youtube():
             await discord_ch.send(f'動画がUPされました。\nhttps://www.youtube.com/watch?v={latest_v_id}')
 
 
+@mildom_archive.error
+async def mildom_archive_error(e):
+    mildom_archive.start()
+
+
+@openrec_exam_every_30sec.error
+async def openrec_exam_every_30sec_error(e):
+    openrec_exam_every_30sec.start()
+
+
+@check_youtube.error
+async def check_youtube_error(e):
+    check_youtube.start()
+
+
 @client.event
 async def on_ready():
     global mute_role
@@ -296,14 +311,7 @@ async def on_message(message):
 async def on_raw_reaction_add(payload):
     message_id = payload.message_id
     if message_id == reaction_message_id:
-        guild_id = payload.guild_id
-        guild = discord.utils.find(lambda g: g.id == guild_id, client.guilds)
-        if payload.emoji.name in reaction_dict:
-            role_name = reaction_dict.get(payload.emoji.name)
-            role = discord.utils.get(guild.roles, name=role_name)
-        else:
-            role = discord.utils.get(guild.roles, name=payload.emoji.name)
-
+        role = get_reaction_role(payload)
         if role is not None:
             member = discord.utils.find(lambda m: m.id == payload.user_id, guild.members)
             this_bot = client.user
@@ -319,20 +327,22 @@ async def on_raw_reaction_add(payload):
             print("Role not found")
 
 
+def get_reaction_role(payload):
+    guild_id = payload.guild_id
+    guild = discord.utils.find(lambda g: g.id == guild_id, client.guilds)
+    if payload.emoji.name in reaction_dict:
+        role_name = reaction_dict.get(payload.emoji.name)
+        role = discord.utils.get(guild.roles, name=role_name)
+    else:
+        role = discord.utils.get(guild.roles, name=payload.emoji.name)
+    return role
+
+
 @client.event
 async def on_raw_reaction_remove(payload):
     message_id = payload.message_id
     if message_id == reaction_message_id:
-        guild_id = payload.guild_id
-        guild = discord.utils.find(lambda g: g.id == guild_id, client.guilds)
-
-        if payload.emoji.name in reaction_dict:
-            role_name = reaction_dict.get(payload.emoji.name)
-            role = discord.utils.get(guild.roles, name=role_name)
-
-        else:
-            role = discord.utils.get(guild.roles, name=payload.emoji.name)
-
+        role = get_reaction_role(payload)
         if role is not None:
             member = discord.utils.find(lambda m: m.id == payload.user_id, guild.members)
             this_bot = client.user
@@ -440,8 +450,8 @@ async def mildom_check_live(user_id, channel, mention_role, mildom_name, msg):
     else:
         if mildom_status.get(user_id) == 'online':
             content: str = msg.content
-            mentioned_role = msg.role_mentions[0]
             if '［終了］' not in content:
+                mentioned_role = msg.role_mentions[0]
                 content = content.replace(f'<@&{mentioned_role.id}>', '')
                 await msg.edit(content='［終了］' + content)
         mildom_status[user_id] = 'offline'
