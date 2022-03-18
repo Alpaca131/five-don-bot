@@ -311,7 +311,9 @@ async def on_message(message):
 async def on_raw_reaction_add(payload):
     message_id = payload.message_id
     if message_id == reaction_message_id:
-        role = get_reaction_role(payload)
+        guild_id = payload.guild_id
+        guild = discord.utils.find(lambda g: g.id == guild_id, client.guilds)
+        role = get_reaction_role(payload, guild)
         if role is not None:
             member = discord.utils.find(lambda m: m.id == payload.user_id, guild.members)
             this_bot = client.user
@@ -327,9 +329,7 @@ async def on_raw_reaction_add(payload):
             print("Role not found")
 
 
-def get_reaction_role(payload):
-    guild_id = payload.guild_id
-    guild = discord.utils.find(lambda g: g.id == guild_id, client.guilds)
+def get_reaction_role(payload, guild):
     if payload.emoji.name in reaction_dict:
         role_name = reaction_dict.get(payload.emoji.name)
         role = discord.utils.get(guild.roles, name=role_name)
@@ -339,10 +339,12 @@ def get_reaction_role(payload):
 
 
 @client.event
-async def on_raw_reaction_remove(payload):
+async def on_raw_reaction_remove(payload, guild):
     message_id = payload.message_id
     if message_id == reaction_message_id:
-        role = get_reaction_role(payload)
+        guild_id = payload.guild_id
+        guild = discord.utils.find(lambda g: g.id == guild_id, client.guilds)
+        role = get_reaction_role(payload, guild)
         if role is not None:
             member = discord.utils.find(lambda m: m.id == payload.user_id, guild.members)
             this_bot = client.user
