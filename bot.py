@@ -339,7 +339,7 @@ def get_reaction_role(payload, guild):
 
 
 @client.event
-async def on_raw_reaction_remove(payload, guild):
+async def on_raw_reaction_remove(payload):
     message_id = payload.message_id
     if message_id == reaction_message_id:
         guild_id = payload.guild_id
