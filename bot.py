@@ -489,6 +489,9 @@ async def dm(message):
     if message.content == 'log' or message.content == 'ログ':
         if message.author.id == 295208852712849409 or message.author.id == 539910964724891719:
             await message.channel.send(file=log_path)
+    if message.content == "再起動" and message.author.id in [295208852712849409, 539910964724891719]:
+        await message.channel.send("再起動します。")
+        await client.close()
 
 
 async def notify_mention(message):
