@@ -226,7 +226,7 @@ async def on_ready():
 
 
 @client.event
-async def on_message(message):
+async def on_message(message: discord.Message):
     if message.author == client.user:
         return
     # spam_check
@@ -235,7 +235,8 @@ async def on_message(message):
     await url_detection(message)
     # メンション
     if message.channel.id in mention_dict:
-        await notify_mention(message=message)
+        if message.webhook_id is None:
+            await notify_message(message=message)
     # Bot除外
     if message.author.bot:
         return
@@ -356,7 +357,7 @@ async def dm(message):
         await client.close()
 
 
-async def notify_mention(message):
+async def notify_message(message):
     text_mod = url_replace(text=message.content)
     await message.channel.send(
         mention_dict.get(message.channel.id) + '\n' + text_mod + '\n`[' + str(message.id) + ']`')
