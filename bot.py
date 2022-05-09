@@ -29,8 +29,6 @@ server_join_ratelimit = AsyncLimiter(time_period=10, max_rate=10)
 invite_link_ratelimit = AsyncLimiter(time_period=3600, max_rate=2)
 url_ratelimit = AsyncLimiter(time_period=60, max_rate=4)
 message_ratelimit = AsyncLimiter(time_period=10, max_rate=20)
-mildom_status = {}
-heart_beat = {}
 exam_youtube_on_live = False
 exam_youtube_notify_message = None
 mention_dict = {484103635895058432: '<@&718449500729114664>', 484103660742115363: '<@&718449761409302580>',
@@ -130,62 +128,14 @@ async def check_exam_youtube():
     exam_youtube_on_live = is_live
 
 
-@tasks.loop(minutes=1)
-async def check_process_running():
-    global mildom_count
-    if "mildom" not in heart_beat or "openrec" not in heart_beat:
-        return
-    if time.time() - heart_beat['mildom'] > 45:
-        mildom_count = 0
-        del heart_beat['mildom']
-        for i in mildom_list:
-            user_id = i[0]
-            mildom_status[user_id] = 'offline'
-        mildom_archive.start()
-    if time.time() - heart_beat['openrec'] > 65:
-        del heart_beat['openrec']
-        openrec_exam_every_30sec.start()
-
-
 @tasks.loop(minutes=5)
 async def reset_sent_url_list():
     sent_url_list.clear()
 
 
 @tasks.loop(seconds=60)
-async def mildom_archive():
-    global mildom_count
-    print('check mildom')
-    heart_beat['mildom'] = time.time()
-    mildom_count = mildom_count + 1
-    if mildom_count == 4:
-        get_archive = True
-        mildom_count = 0
-    else:
-        get_archive = False
-    for val in mildom_list:
-        user_id = val[0]
-        mention_role = val[2]
-        name = val[3]
-        ch = client.get_channel(int(val[1]))
-        msg_id = auto_notify_message[int(user_id)]
-        msg = await ch.fetch_message(msg_id)
-        try:
-            await mildom_check_live(user_id=user_id,
-                                    channel=ch,
-                                    mention_role=mention_role,
-                                    mildom_name=name, msg=msg)
-        # Mildomのレートリミット
-        except ConnectionRefusedError:
-            return
-        if get_archive:
-            await mildom_check_archive(user_id=user_id, msg=msg)
-
-
-@tasks.loop(seconds=60)
 async def openrec_exam_every_30sec():
     global live_status, latest_live_link
-    heart_beat['openrec'] = time.time()
     download_url = "https://public.openrec.tv/external/api/v5/movies?channel_ids=EXMeee&onair_status=1"
     response = await request(url=download_url)
     content = json.loads(response)
@@ -242,11 +192,6 @@ async def check_youtube():
             await discord_ch.send(f'動画がUPされました。\nhttps://www.youtube.com/watch?v={latest_v_id}')
 
 
-@mildom_archive.error
-async def mildom_archive_error(e):
-    mildom_archive.start()
-
-
 @openrec_exam_every_30sec.error
 async def openrec_exam_every_30sec_error(e):
     openrec_exam_every_30sec.start()
@@ -273,14 +218,10 @@ async def on_ready():
         auto_notify_message[int(mildom_user_id)] = msg.id
     # 暫定的にWelcomeロールに設定
     mute_role = discord.utils.get(client.get_guild(484102468524048395).roles, id=734047235574071304)
-    heart_beat['openrec'] = time.time()
-    heart_beat['mildom'] = time.time()
-    mildom_archive.start()
     openrec_exam_every_30sec.start()
     reset_sent_url_list.start()
     check_youtube.start()
     await asyncio.sleep(2)
-    check_process_running.start()
     print('ready')
 
 
@@ -403,89 +344,10 @@ async def on_member_join(member):
     await server_join_ratelimit.acquire(1)
 
 
-async def mildom_check_archive(user_id, msg):
-    """
-    アーカイブチェック
-    """
-    if '［アーカイブ］' in msg.content:
-        return
-    v_id, title = await mildom_get_playback(user_id)
-    if v_id is None:
-        return
-    archive_url = 'https://www.mildom.com/playback/' + user_id + '?v_id=' + str(v_id)
-    old_archive = archive.get(user_id)
-    if old_archive is None:
-        archive[user_id] = archive_url
-        return
-    if old_archive != archive_url:
-        if len(msg.embeds) == 0:
-            return
-        embed = msg.embeds[0]
-        embed.title = '［アーカイブ］' + title
-        embed.url = archive_url
-        await msg.edit(embed=embed)
-    archive[user_id] = archive_url
-    return
-
-
-async def mildom_check_live(user_id, channel, mention_role, mildom_name, msg):
-    """
-    配信状況チェック
-    """
-    r = await mildom_get_user(user_id)
-    anchor_live = r['anchor_live']
-    # 配信中の場合
-    if anchor_live == 11:
-        if mildom_status.get(user_id) == 'offline':
-            embed = discord.Embed(title=r['live_title'],
-                                  url='https://mildom.com/' + user_id,
-                                  color=discord.Colour.blue())
-            embed.set_thumbnail(url=r['thumbnail_url'])
-            embed.set_author(name=mildom_name,
-                             icon_url=r['avatar_url'])
-            notify_message = await channel.send(mention_role + ' ' + mildom_name + 'さんが配信を開始しました。',
-                                                embed=embed)
-            auto_notify_message[int(user_id)] = notify_message.id
-        mildom_status[user_id] = 'online'
-
-    # 配信中ではない場合
-    else:
-        if mildom_status.get(user_id) == 'online':
-            content: str = msg.content
-            if '［終了］' not in content:
-                mentioned_role = msg.role_mentions[0]
-                content = content.replace(f'<@&{mentioned_role.id}>', '')
-                await msg.edit(content='［終了］' + content)
-        mildom_status[user_id] = 'offline'
-
-
 async def dm(message):
     if message.content == '人数':
         server = discord.utils.get(client.guilds, id=484102468524048395)
         await message.channel.send(len(server.members))
-    if message.content == 'status' or message.content == '配信状況' or message.content == '配信':
-        embed = discord.Embed(title="配信状況一覧", description="このBotが取得している配信者の配信状況一覧です。",
-                              color=discord.Colour.blue())
-        for item in mildom_list:
-            name = item[3]
-            user_id = item[0]
-            status = mildom_status.get(user_id)
-            if status == 'online':
-                status_message = '[配信中](https://www.mildom.com/' + user_id + ')'
-            elif status == 'offline':
-                status_message = '配信していません'
-            else:
-                status_message = '取得に失敗しました。製作者(Alpaca#8032)までお問い合わせ下さい。'
-            embed.add_field(name=name + 'さん',
-                            value=status_message, inline=False)
-        if live_status == 'true':
-            embed.add_field(name='EXAMさん',
-                            value='[配信中](' + latest_live_link + ')', inline=False)
-        else:
-            embed.add_field(name='EXAMさん',
-                            value='配信していません', inline=False)
-
-        await message.channel.send(embed=embed)
     if message.content == 'log' or message.content == 'ログ':
         if message.author.id == 295208852712849409 or message.author.id == 539910964724891719:
             await message.channel.send(file=log_path)
@@ -600,15 +462,6 @@ async def mildom_get_user(user_id):
                  'avatar_url': avatar_url,
                  'thumbnail_url': thumbnail_url}
     return data_dict
-
-
-async def mildom_get_playback(user_id):
-    url = f"https://cloudac.mildom.com/nonolive/videocontent/profile/playbackList?__platform=web&user_id={user_id}"
-    r = await request(url)
-    local_dict = json.loads(r)
-    v_id = local_dict['body'][0]['v_id']
-    title = local_dict['body'][0]['title']
-    return v_id, title
 
 
 async def check_message_ratelimit(message):
