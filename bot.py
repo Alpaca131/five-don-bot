@@ -235,8 +235,11 @@ async def on_message(message: discord.Message):
     await url_detection(message)
     # メンション
     if message.channel.id in mention_dict:
-        if message.webhook_id is None:
-            await notify_message(message=message)
+        if message.webhook_id is not None:
+            return
+        elif message.content.startswith('.') or message.content.startswith('．'):
+            return
+        await notify_message(message=message)
     # Bot除外
     if message.author.bot:
         return
@@ -308,10 +311,10 @@ async def on_raw_message_edit(payload):
     edited_message_id = payload.message_id
     edited_msg = await ch.fetch_message(edited_message_id)
     text_mod = url_replace(text=edited_msg.content)
-    if edited_msg.author.id == 718034684533145605:
+    if edited_msg.author.id == client.user.id:
         return
     async for bot_message in ch.history():
-        if str(edited_message_id) in bot_message.content and bot_message.author.id == 718034684533145605:
+        if str(edited_message_id) in bot_message.content and bot_message.author.id == client.user.id:
             await bot_message.edit(
                 content=mention_dict.get(edited_msg.channel.id) + '\n' + text_mod + '\n`[' + str(
                     edited_message_id) + ']`')
