@@ -205,17 +205,6 @@ async def check_youtube_error(e):
 @client.event
 async def on_ready():
     global mute_role
-    for value_list in mildom_list:
-        mildom_user_id = value_list[0]
-        channel_id = value_list[1]
-        channel = client.get_channel(int(channel_id))
-        msg = None
-        async for msg_history in channel.history():
-            if msg_history.author.id == 718034684533145605:
-                if re.search(r'`\[\d+]`', msg_history.content) is None:
-                    msg = msg_history
-                    break
-        auto_notify_message[int(mildom_user_id)] = msg.id
     # 暫定的にWelcomeロールに設定
     mute_role = discord.utils.get(client.get_guild(484102468524048395).roles, id=734047235574071304)
     openrec_exam_every_30sec.start()
