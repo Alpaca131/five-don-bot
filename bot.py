@@ -350,10 +350,11 @@ async def dm(message):
         await client.close()
 
 
-async def notify_message(message):
+async def notify_message(message: discord.Message):
     text_mod = url_replace(text=message.content)
-    await message.channel.send(
-        mention_dict.get(message.channel.id) + '\n' + text_mod + '\n`[' + str(message.id) + ']`')
+    channel: discord.TextChannel = message.channel
+    await channel.send(content=f"{mention_dict.get(message.channel.id)}\n{text_mod}\n`[{message.id}]`",
+                       embed=message.embeds[0] if message.embeds else None)
     dt_now = time.time()
     with open(log_path, 'a') as f:
         content = '時刻：' + str(
