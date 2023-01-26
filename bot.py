@@ -83,7 +83,8 @@ reaction_dict = {'01kun': 'L-KUN', '05tnk90': 'L-tn90', '06exam': 'L-EXAM', '11s
 emoji_list = ['<:01kun:503956099343581185>', '<:02mav:503956138404872202>', '<:04riki:503956260006133760>',
               '<:05tnk90:503956313110478849>', '<:06exam:503956340939685888>', '<:07sayaA:503956355602972685>',
               '<:08delfin:503956370714787872>', '<:11sova:530672411574534154>', '<:10abo:537845803247730690>',
-              '<:03ryu:503956243417792543>', '<:13htsm:818841802131111976>', '<:14mnd1:818841802081304577>', "<:09TKC:504254839207886849>"]
+              '<:03ryu:503956243417792543>', '<:13htsm:818841802131111976>', '<:14mnd1:818841802081304577>',
+              "<:09TKC:504254839207886849>"]
 archive = {}
 auto_notify_message = {}
 mute_role = None
@@ -230,6 +231,17 @@ async def on_message(message: discord.Message):
         elif message.content.startswith('.') or message.content.startswith('．'):
             return
         await notify_message(message=message)
+    # ブースト通知を転送
+    if message.type == discord.MessageType.premium_guild_subscription:
+        embed = discord.Embed(title=f"{message.author.display_name}さんがサーバーをブーストしました！", color=discord.Color.from_rgb(249, 113, 244),
+                              author=message.author)
+        await client.get_channel(484102468524048399).send(embed=embed)
+    if message.type in (discord.MessageType.premium_guild_tier_1,
+                        discord.MessageType.premium_guild_tier_2,
+                        discord.MessageType.premium_guild_tier_3):
+        embed = discord.Embed(title="サーバーのブーストレベルが上がりました！", color=discord.Color.from_rgb(249, 113, 244),
+                              description=f"現在のブーストレベル：{message.guild.premium_tier}", author=message.author)
+        await client.get_channel(484102468524048399).send(embed=embed)
     # Bot除外
     if message.author.bot:
         return
