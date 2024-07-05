@@ -12,7 +12,6 @@ import streamlink
 from aiolimiter import AsyncLimiter
 from discord.ext import tasks
 from dispander import dispand
-from discord_together import DiscordTogether
 
 import settings
 
@@ -20,7 +19,6 @@ TOKEN = settings.TOKEN
 DSN = settings.SENTRY_DSN
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
-togetherControl = DiscordTogether(token=settings.TOKEN)
 sentry_sdk.init(
     DSN,
     traces_sample_rate=1.0
@@ -135,44 +133,6 @@ async def reset_sent_url_list():
     sent_url_list.clear()
 
 
-@tasks.loop(seconds=60)
-async def openrec_exam_every_30sec():
-    global live_status, latest_live_link
-    download_url = "https://public.openrec.tv/external/api/v5/movies?channel_ids=EXMeee&onair_status=1"
-    response = await request(url=download_url)
-    content = json.loads(response)
-    if len(content) != 0:
-        print('Exam-on-live')
-        live_id = content[0]['id']
-        latest_live_link = 'https://www.openrec.tv/live/' + live_id
-        if live_status is False:
-            await client.get_channel(484104150959783936).send(
-                "<@&718451051102994473> EXAMさんが配信を開始しました。\n" + latest_live_link)
-            live_status = True
-        elif live_status == 'first':
-            live_status = True
-    else:
-        print('Exam-not-live')
-        if live_status is True:
-            live_status = False
-            try:
-                msg_ch = client.get_channel(484104150959783936)
-                msg = ''
-                async for msg_history in msg_ch.history():
-                    if re.search(r'`\[\d+]`', msg_history.content) is None:
-                        msg = msg_history
-                        break
-                    else:
-                        continue
-                mentioned_role = msg.role_mentions[0]
-                msg.content = msg.content.replace(f'<@&{mentioned_role.id}>', '')
-                await msg.edit(content='［終了］' + msg.content)
-            except NameError:
-                print('メッセージが存在しません')
-        elif live_status == 'first':
-            live_status = False
-
-
 @tasks.loop(minutes=5)
 async def check_youtube():
     for yt_ch_id in youtube_ch_id_list:
@@ -194,11 +154,6 @@ async def check_youtube():
             await discord_ch.send(f'動画がUPされました。\nhttps://www.youtube.com/watch?v={latest_v_id}')
 
 
-@openrec_exam_every_30sec.error
-async def openrec_exam_every_30sec_error(e):
-    openrec_exam_every_30sec.start()
-
-
 @check_youtube.error
 async def check_youtube_error(e):
     check_youtube.start()
@@ -209,7 +164,6 @@ async def on_ready():
     global mute_role
     # 暫定的にWelcomeロールに設定
     mute_role = discord.utils.get(client.get_guild(484102468524048395).roles, id=734047235574071304)
-    openrec_exam_every_30sec.start()
     reset_sent_url_list.start()
     check_youtube.start()
     await asyncio.sleep(2)
@@ -248,8 +202,6 @@ async def on_message(message: discord.Message):
     # DM機能
     if message.guild is None:
         await dm(message=message)
-    if message.channel.id == 484102995445809162:
-        await discord_together(message)
     # Expand
     await dispand(message)
 
@@ -372,20 +324,6 @@ async def notify_message(message: discord.Message):
         content = '時刻：' + str(
             dt_now) + ' 送信者：' + message.author.name + ' チャンネル：' + message.channel.name + ' メッセージ：' + message.content
         print(content, file=f)
-
-
-async def discord_together(message):
-    if client.user.id not in message.raw_mentions:
-        return
-    youtube_link = await togetherControl.create_link(message.author.voice.channel.id, 'youtube')
-    poker_link = await togetherControl.create_link(message.author.voice.channel.id, 'poker')
-    chess_link = await togetherControl.create_link(message.author.voice.channel.id, 'chess')
-    betrayal_link = await togetherControl.create_link(message.author.voice.channel.id, 'betrayal')
-    fishing_link = await togetherControl.create_link(message.author.voice.channel.id, 'fishing')
-    embed = discord.Embed(description=f"[YouTube]({youtube_link})\n\n[ポーカー]({poker_link})"
-                                      f"\n\n[チェス]({chess_link})\n\n[Betrayal.io]({betrayal_link})"
-                                      f"\n\n[Fishington.io]({fishing_link})")
-    await message.channel.send(embed=embed)
 
 
 async def invite_link_detection(message):
